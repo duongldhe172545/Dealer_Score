@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADG Dealer Scoring Tool</title>
+  <meta name="description" content="Công cụ chấm điểm và phân loại đại lý ADG">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header" id="app-header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">ADG Dealer Scoring</span>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" data-view="dashboard" id="nav-dashboard">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-btn" data-view="scoring" id="nav-scoring">
+        <span class="nav-icon">✏️</span>
+        <span>Chấm điểm mới</span>
+      </button>
+      <button class="nav-btn" id="nav-settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Cài đặt hệ số</span>
+      </button>
+    </nav>
+    <div class="header-right">
+      <button class="btn btn-outline btn-sm" id="btn-export-excel" title="Xuất Excel">
+        📥 Export Excel
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!--======================== DASHBOARD VIEW ========================-->
+    <section class="view active" id="view-dashboard">
+      <!-- Stats Row -->
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card" id="stat-total">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Tổng đại lý</div>
+        </div>
+        <div class="stat-card tier-a" id="stat-tier-a">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Tier A · NODE</div>
+        </div>
+        <div class="stat-card tier-b" id="stat-tier-b">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Tier B · HUB</div>
+        </div>
+        <div class="stat-card tier-c" id="stat-tier-c">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Tier C · LINK</div>
+        </div>
+        <div class="stat-card tier-d" id="stat-tier-d">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Tier D · SEED</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="table-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Tìm theo tên, mã, SĐT...">
+        </div>
+        <div class="filter-group">
+          <select id="filter-tier">
+            <option value="">Tất cả Tier</option>
+            <option value="TIER A (NODE)">Tier A</option>
+            <option value="TIER B (HUB)">Tier B</option>
+            <option value="TIER C (LINK)">Tier C</option>
+            <option value="TIER D (SEED)">Tier D</option>
+          </select>
+          <select id="filter-batch">
+            <option value="">Tất cả Batch</option>
+            <option value="BATCH1">Batch 1</option>
+            <option value="BATCH2">Batch 2</option>
+            <option value="BATCH3">Batch 3</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Dealer Table -->
+      <div class="table-wrapper">
+        <table class="dealer-table" id="dealer-table">
+          <thead>
+            <tr>
+              <th>Mã ĐL</th>
+              <th>Tên ĐL</th>
+              <th>Chủ ĐL</th>
+              <th>SĐT</th>
+              <th>Địa chỉ</th>
+              <th>C_Score</th>
+              <th>Tier</th>
+              <th>Batch</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="dealer-tbody">
+            <!-- Dynamic -->
+          </tbody>
+        </table>
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">🏪</div>
+          <h3>Chưa có đại lý nào</h3>
+          <p>Bắt đầu chấm điểm đại lý đầu tiên</p>
+          <button class="btn btn-primary" id="btn-start-scoring">✏️ Chấm điểm mới</button>
+        </div>
+      </div>
+    </section>
+
+    <!--======================== SCORING VIEW ========================-->
+    <section class="view" id="view-scoring">
+      <!-- Progress -->
+      <div class="step-progress">
+        <div class="step-item active" data-step="1">
+          <div class="step-dot">1</div>
+          <span class="step-label">Thông tin</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="2">
+          <div class="step-dot">2</div>
+          <span class="step-label">Chấm điểm</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" data-step="3">
+          <div class="step-dot">3</div>
+          <span class="step-label">Kết quả</span>
+        </div>
+      </div>
+
+      <!--======== STEP 1: Basic Info ========-->
+      <div class="step-content active" id="step-1">
+        <div class="form-card">
+          <h2 class="form-title">📋 Thông tin đại lý</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="f-ten-dl">Tên đại lý <span class="required">*</span></label>
+              <input type="text" id="f-ten-dl" placeholder="VD: Quyền Hoài" required>
+            </div>
+            <div class="form-group">
+              <label for="f-ten-chu">Tên chủ đại lý</label>
+              <input type="text" id="f-ten-chu" placeholder="VD: Quyền">
+            </div>
+            <div class="form-group">
+              <label for="f-sdt">Số điện thoại</label>
+              <input type="tel" id="f-sdt" placeholder="0965966168">
+            </div>
+            <div class="form-group full-width">
+              <label for="f-dia-chi">Địa chỉ</label>
+              <input type="text" id="f-dia-chi" placeholder="Số 002-004, Phan Kế Bính, Bắc Cường, Lào Cai">
+            </div>
+            <div class="form-group">
+              <label for="f-dealer-type">Loại đại lý</label>
+              <input type="text" id="f-dealer-type" placeholder="VD: Xưởng sản xuất, ĐL phân phối...">
+            </div>
+            <div class="form-group">
+              <label for="f-category">Ngành hàng</label>
+              <input type="text" id="f-category" placeholder="VD: Cua/Nhom_kinh">
+            </div>
+            <div class="form-group">
+              <label for="f-install-team">Có đội lắp đặt?</label>
+              <div class="toggle-wrap">
+                <label class="toggle">
+                  <input type="checkbox" id="f-install-team">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label" id="toggle-label">Không</span>
+              </div>
+            </div>
+            <div class="form-group" id="team-size-group" style="display:none">
+              <label for="f-team-size">Số thợ lắp đặt</label>
+              <input type="number" id="f-team-size" min="0" value="0">
+            </div>
+            <div class="form-group full-width">
+              <label for="f-note">Ghi chú</label>
+              <textarea id="f-note" rows="2" placeholder="Ghi chú thêm..."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-secondary" id="btn-cancel-form">Hủy</button>
+            <button class="btn btn-primary" id="btn-next-step1">Tiếp tục →</button>
+          </div>
+        </div>
+      </div>
+
+      <!--======== STEP 2: Scoring ========-->
+      <div class="step-content" id="step-2">
+        <div class="scoring-header">
+          <h2 class="form-title">🎯 Chấm điểm đại lý</h2>
+        </div>
+        <div class="ai-status" id="ai-status" style="display:none">
+          <div class="spinner"></div>
+          <span>AI đang chấm điểm...</span>
+        </div>
+
+        <!-- Group 1 -->
+        <div class="criteria-group">
+          <div class="group-header">
+            <h3>Nhóm 1: Năng lực hiện tại</h3>
+            <span class="group-weight">75% tổng trọng số</span>
+          </div>
+          <div id="criteria-group-1"></div>
+        </div>
+
+        <!-- Group 2 -->
+        <div class="criteria-group">
+          <div class="group-header">
+            <h3>Nhóm 2: Nền tảng bền vững</h3>
+            <span class="group-weight">25% tổng trọng số</span>
+          </div>
+          <div id="criteria-group-2"></div>
+        </div>
+
+        <div style="text-align: center; margin: 2rem 0;">
+          <button class="btn btn-accent" id="btn-ai-score-all">
+            <span class="ai-icon">🤖</span> AI Chấm Tất Cả
+          </button>
+        </div>
+
+        <!-- Running total -->
+        <div class="running-total" id="running-total">
+          <span class="total-label">C_Score hiện tại:</span>
+          <span class="total-value" id="running-score">0</span>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" id="btn-prev-step2">← Quay lại</button>
+          <button class="btn btn-primary" id="btn-next-step2">Xem kết quả →</button>
+        </div>
+      </div>
+
+      <!--======== STEP 3: Results ========-->
+      <div class="step-content" id="step-3">
+        <div class="result-card">
+          <h2 class="form-title">📊 Kết quả chấm điểm</h2>
+
+          <!-- Dealer name -->
+          <div class="result-dealer-name" id="result-dealer-name"></div>
+
+          <!-- Big score display -->
+          <div class="score-display">
+            <div class="score-big" id="result-cscore">0</div>
+            <div class="score-label">C_Score (0-100)</div>
+          </div>
+
+          <div class="tier-batch-row">
+            <div class="tier-badge-big" id="result-tier">TIER ?</div>
+            <div class="batch-badge-big" id="result-batch">BATCH ?</div>
+          </div>
+
+          <!-- Score breakdown -->
+          <div class="score-breakdown" id="score-breakdown">
+            <!-- Dynamic rows -->
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-secondary" id="btn-prev-step3">← Sửa điểm</button>
+            <button class="btn btn-success" id="btn-save-dealer">💾 Lưu đại lý</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--======================== DETAIL VIEW ========================-->
+    <section class="view" id="view-detail">
+      <div class="detail-card" id="detail-content">
+        <!-- Dynamic -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settings-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+    <div class="modal-content form-card" style="width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+      <h2 class="form-title">⚙️ Cài đặt hệ số tiêu chí</h2>
+      <p style="color:var(--text-muted); margin-bottom:1.5rem;">Thay đổi hệ số của các tiêu chí. Hệ thống sẽ **tự động tính toán lại toàn bộ điểm số** cho tất cả các đại lý.</p>
+      
+      <div id="weights-form" style="display:grid; grid-template-columns: 1fr; gap:0.8rem;">
+        <!-- Dynamic inputs -->
+      </div>
+      
+      <div class="running-total" style="position:static; margin-top:20px;">
+        <span class="total-label">Tổng trọng số:</span>
+        <span class="total-value" id="weights-sum">100%</span>
+      </div>
+      
+      <div class="form-actions">
+        <button class="btn btn-secondary" id="btn-close-settings">Hủy</button>
+        <button class="btn btn-primary" id="btn-save-weights">Lưu & Tính Lại Tất Cả</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/criteria.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/scoring.js"></script>
+  <script src="/js/form.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
