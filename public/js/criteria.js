@@ -105,8 +105,11 @@ window.CRITERIA = [
     groupName: 'Nền tảng bền vững',
     weight: 0.10,
     questions: [
-      'Khách trong phường có biết đến anh không?',
-      'Khách mới thường tìm anh bằng cách nào?'
+      'Trong khu vực 3-5km quanh cửa hàng, khách biết đến anh/chị bằng cách nào?',
+      'Có khu dân cư, tuyến phố hay cụm công trình nào mà anh/chị bán rất mạnh không?',
+      'Khách địa phương có thường gọi trực tiếp thay vì phải chạy quảng cáo không?',
+      'Nếu một thợ hoặc khách cần vật tư gấp, họ có nghĩ đến cửa hàng anh/chị đầu tiên không?',
+      'Doanh số địa bàn hiện tại đến từ nhận diện tự nhiên hay phải mua traffic liên tục?'
     ],
     rubric: {
       0: 'Không có vùng địa lý nhất định / khách đến ngẫu nhiên',
@@ -121,8 +124,11 @@ window.CRITERIA = [
     groupName: 'Nền tảng bền vững',
     weight: 0.08,
     questions: [
-      'Anh lưu thông tin job thế nào?',
-      'Có thể xem lại lịch sử khách cũ không?'
+      'Thông tin khách, báo giá, tiến độ job hiện đang được lưu ở đâu?',
+      'Anh/chị có thể tìm lại lịch sử một khách cũ hoặc một đơn đã làm trong bao lâu?',
+      'Có dùng file Excel, phần mềm, CRM hay chỉ nhắn Zalo cá nhân?',
+      'Dữ liệu doanh thu, công nợ, bảo hành có được cập nhật định kỳ không?',
+      'Khi cần bàn giao cho người khác quản lý, dữ liệu hiện tại có đủ rõ để người mới tiếp quản không?'
     ],
     rubric: {
       0: 'Không ghi chép gì, mọi thứ nằm trong đầu / Zalo cá nhân lộn xộn',
@@ -137,8 +143,11 @@ window.CRITERIA = [
     groupName: 'Nền tảng bền vững',
     weight: 0.04,
     questions: [
-      'Anh nhập hàng từ mấy nguồn?',
-      'Có thể đổi nhà cung cấp nếu cần không?'
+      'Hiện tại anh/chị nhập hàng từ bao nhiêu nguồn chính?',
+      'Nếu một nhà cung cấp trễ hàng hoặc tăng giá, anh/chị có phương án thay thế không?',
+      'Anh/chị có chủ động thương lượng giá, công nợ hoặc lịch giao hàng không?',
+      'Cửa hàng có theo dõi mức tồn tối thiểu cho nhóm hàng bán chạy không?',
+      'Đã từng phải từ chối đơn vì đứt nguồn mà không có phương án backup chưa?'
     ],
     rubric: {
       0: 'Mua theo chỉ định nhà SX, không có quyền chọn nguồn',
@@ -153,8 +162,11 @@ window.CRITERIA = [
     groupName: 'Nền tảng bền vững',
     weight: 0.03,
     questions: [
-      'Có ai giới thiệu khách/thợ cho anh không?',
-      'Anh có giới thiệu ai vào nghề không?'
+      'Trong khu vực, có bao nhiêu thợ/đối tác thường xuyên giới thiệu khách cho anh/chị?',
+      'Anh/chị có tham gia nhóm cộng đồng nghề hoặc mạng lưới địa phương nào không?',
+      'Khi cần tuyển thợ hoặc tìm đối tác mới, anh/chị có dễ huy động qua mạng lưới sẵn có không?',
+      'Đã từng có người chủ động nhờ anh/chị cố vấn, chia sẻ nguồn hàng hay giới thiệu việc chưa?',
+      'Tên cửa hàng/chủ cửa hàng có được nhắc đến như một điểm uy tín trong khu vực không?'
     ],
     rubric: {
       0: 'Không ai trong nghề biết đến / hoạt động đơn lẻ',
