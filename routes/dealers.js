@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/database');
+const db = require('../lib/database');
 
 // GET /api/dealers — List all dealers
 router.get('/', (req, res) => {
