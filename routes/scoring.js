@@ -92,14 +92,14 @@ function buildScoringPrompt(responses, criteria) {
 `;
   });
 
-  return `Bạn là chuyên gia đánh giá đại lý phân phối sản phẩm công nghiệp (cửa cuốn, nhôm kính).
-Dựa vào câu trả lời thực tế của đại lý cho mỗi tiêu chí, hãy chấm điểm 0, 1, hoặc 2 theo rubric.
+  return `Bạn là chuyên gia đánh giá giám đốc kênh phân phối đại lý (cửa cuốn, nhôm kính).
+Dựa vào câu trả lời thực tế của đại lý cho mỗi tiêu chí, hãy chấm điểm 0, 1, hoặc 2 theo rubric một cách thông minh và linh hoạt.
 
 ## QUY TẮC CHẤM:
-- Chấm CHÍNH XÁC theo rubric, không ngoại lệ
-- Nếu câu trả lời không rõ hoặc thiếu thông tin → cho 0 điểm
-- Nếu câu trả lời nằm giữa 2 mức → cho mức THẤP hơn
-- Chỉ trả về JSON, không giải thích
+- Phân tích ngữ nghĩa câu trả lời theo cách con người hiểu. Nếu ý của đại lý khớp với xu hướng của mức nào nhất thì cho điểm mức đó.
+- Nếu câu trả lời cho thấy đại lý CÓ thực hiện tiêu chí (ví dụ: "có lưu khách", "có làm") nhưng thiếu con số/định lượng cụ thể theo rubric, hãy châm chước và THIÊN VỊ cho 1 điểm.
+- Chỉ cho 0 điểm nếu câu trả lời thể hiện rõ sự PHỦ ĐỊNH (không có, không làm, không biết), hoặc nội dung hoàn toàn trống/lạc đề.
+- Chỉ trả về JSON, không giải thích gì thêm.
 
 ## CÁC TIÊU CHÍ VÀ CÂU TRẢ LỜI:
 ${criteriaBlock}
