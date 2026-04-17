@@ -153,6 +153,7 @@ window.FormController = {
                 ${c.rubric[s]}
               </div>
             </label>
+          `).join('')}
         </div>
       `;
 
