@@ -153,23 +153,28 @@ window.FormController = {
                 ${c.rubric[s]}
               </div>
             </label>
-          `).join('')}
         </div>
       `;
 
       // Listen for score changes — allow click-to-uncheck (toggle off)
       card.querySelectorAll('input[type=radio]').forEach(radio => {
-        radio.addEventListener('mousedown', function() {
-          this._wasChecked = this.checked;
-        });
-        radio.addEventListener('click', function() {
-          if (this._wasChecked) {
+        radio.addEventListener('click', function(e) {
+          if (this.dataset.wasChecked === 'true') {
             this.checked = false;
+            this.dataset.wasChecked = 'false';
+            
             const code = this.dataset.code;
             const cardEl = document.getElementById(`card-${code}`);
-            cardEl.classList.remove('scored', 'score-0', 'score-1', 'score-2');
-            window.FormController.updateRunningTotal();
+            if (cardEl) {
+              cardEl.classList.remove('scored', 'score-0', 'score-1', 'score-2');
+              window.FormController.updateRunningTotal();
+            }
           } else {
+            // Unset tracking for all radios in this group
+            document.querySelectorAll(`input[name="score-${this.dataset.code}"]`).forEach(r => {
+              r.dataset.wasChecked = 'false';
+            });
+            this.dataset.wasChecked = 'true';
             window.FormController.onScoreChange(this.dataset.code, parseInt(this.value));
           }
         });
@@ -260,7 +265,9 @@ window.FormController = {
         if (manuallyScored[code]) continue; // Safety: skip if user already scored
         const radio = document.querySelector(`input[name="score-${code}"][value="${score}"]`);
         if (radio) {
+          document.querySelectorAll(`input[name="score-${code}"]`).forEach(r => r.dataset.wasChecked = 'false');
           radio.checked = true;
+          radio.dataset.wasChecked = 'true';
           this.onScoreChange(code, score);
           applied++;
         }
@@ -381,7 +388,9 @@ window.FormController = {
 
         const radio = document.querySelector(`input[name="score-${s.criterion_code}"][value="${s.score}"]`);
         if (radio) {
+          document.querySelectorAll(`input[name="score-${s.criterion_code}"]`).forEach(r => r.dataset.wasChecked = 'false');
           radio.checked = true;
+          radio.dataset.wasChecked = 'true';
           this.onScoreChange(s.criterion_code, s.score);
         }
       });
@@ -405,7 +414,10 @@ window.FormController = {
     // Clear step 2
     window.CRITERIA.forEach(c => {
       document.getElementById(`resp-${c.code}`).value = '';
-      document.querySelectorAll(`input[name="score-${c.code}"]`).forEach(r => r.checked = false);
+      document.querySelectorAll(`input[name="score-${c.code}"]`).forEach(r => {
+        r.checked = false;
+        r.dataset.wasChecked = 'false';
+      });
       const card = document.getElementById(`card-${c.code}`);
       card.classList.remove('scored', 'score-0', 'score-1', 'score-2');
     });
