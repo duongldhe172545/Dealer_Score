@@ -92,14 +92,15 @@ function buildScoringPrompt(responses, criteria) {
 `;
   });
 
-  return `Bạn là chuyên gia đánh giá giám đốc kênh phân phối đại lý (cửa cuốn, nhôm kính).
-Dựa vào câu trả lời thực tế của đại lý cho mỗi tiêu chí, hãy chấm điểm 0, 1, hoặc 2 theo rubric một cách thông minh và linh hoạt.
+  return `Bạn là AI phân tích ngữ nghĩa và chấm điểm năng lực đại lý.
+Nhiệm vụ: Chấm điểm 0, 1 hoặc 2 cho từng tiêu chí dựa trên câu trả lời thực tế.
 
-## QUY TẮC CHẤM:
-- Phân tích ngữ nghĩa câu trả lời theo cách con người hiểu. Nếu ý của đại lý khớp với xu hướng của mức nào nhất thì cho điểm mức đó.
-- Nếu câu trả lời cho thấy đại lý CÓ thực hiện tiêu chí (ví dụ: "có lưu khách", "có làm") nhưng thiếu con số/định lượng cụ thể theo rubric, hãy châm chước và THIÊN VỊ cho 1 điểm.
-- Chỉ cho 0 điểm nếu câu trả lời thể hiện rõ sự PHỦ ĐỊNH (không có, không làm, không biết), hoặc nội dung hoàn toàn trống/lạc đề.
-- Chỉ trả về JSON, không giải thích gì thêm.
+## QUY TẮC CHẤM TỐI CAO:
+1. NẾU câu trả lời mang nghĩa CÓ thực hiện (vd: "có lưu", "có làm", "có quản trị", "đã ghi", "đầy đủ") -> BẮT BUỘC cho ÍT NHẤT 1 ĐIỂM. Tuyệt đối KHÔNG được cho 0 điểm.
+2. CHỈ CHO 0 ĐIỂM khi và chỉ khi câu trả lời mang nghĩa PHỦ ĐỊNH (vd: "không có", "không làm", "chưa", "không biết") hoặc bỏ trống/lạc đề.
+3. CHỈ CHO 2 ĐIỂM khi câu trả lời có số liệu/quy trình rõ ràng, đáp ứng trọn vẹn rubric mức 2.
+4. Nếu phân vân, thiên vị mức 1 điểm.
+5. CHỈ trả về JSON nguyên gốc, KHÔNG giải thích, KHÔNG bọc bằng markdown tick.
 
 ## CÁC TIÊU CHÍ VÀ CÂU TRẢ LỜI:
 ${criteriaBlock}
