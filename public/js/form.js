@@ -118,9 +118,22 @@ window.FormController = {
         </div>
       `;
 
-      // Listen for score changes
+      // Listen for score changes — allow click-to-uncheck (toggle off)
       card.querySelectorAll('input[type=radio]').forEach(radio => {
-        radio.addEventListener('change', () => this.onScoreChange(c.code, parseInt(radio.value)));
+        radio.addEventListener('mousedown', function() {
+          this._wasChecked = this.checked;
+        });
+        radio.addEventListener('click', function() {
+          if (this._wasChecked) {
+            this.checked = false;
+            const code = this.dataset.code;
+            const cardEl = document.getElementById(`card-${code}`);
+            cardEl.classList.remove('scored', 'score-0', 'score-1', 'score-2');
+            window.FormController.updateRunningTotal();
+          } else {
+            window.FormController.onScoreChange(this.dataset.code, parseInt(this.value));
+          }
+        });
       });
 
       if (c.group === 1) group1.appendChild(card);
