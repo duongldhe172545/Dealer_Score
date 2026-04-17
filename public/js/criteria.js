@@ -10,8 +10,11 @@ window.CRITERIA = [
     groupName: 'Năng lực hiện tại',
     weight: 0.20,
     questions: [
-      'Anh có list khách cũ không?',
-      'Khách mới từ đâu đến?'
+      'Anh/chị có lưu danh sách khách cũ theo tên, số điện thoại hay mã công trình không?',
+      'Trong 3 tháng gần nhất, có bao nhiêu khách quay lại hoặc tiếp tục giới thiệu khách mới?',
+      'Khách mới thường đến từ nguồn nào: referral, đi ngang cửa hàng, Facebook, thợ quen hay nguồn khác?',
+      'Khi cần chăm sóc lại khách cũ, anh/chị có thể trích xuất danh sách trong bao lâu?',
+      'Anh/chị có phân biệt được nhóm khách lẻ, khách công trình và khách đối tác không?'
     ],
     rubric: {
       0: 'Không nhớ tên khách cũ / không có danh sách',
@@ -26,8 +29,11 @@ window.CRITERIA = [
     groupName: 'Năng lực hiện tại',
     weight: 0.15,
     questions: [
-      'Anh tính lãi thế nào?',
-      'Trung bình bao lâu thu hồi công nợ?'
+      'Anh/chị hiện tính lợi nhuận cho từng đơn hoặc từng công trình như thế nào?',
+      'Bao lâu thì thu hồi xong công nợ từ khách sau khi bàn giao?',
+      'Anh/chị có theo dõi riêng doanh thu, giá vốn, chi phí thợ và chi phí vận hành không?',
+      'Nếu nhà cung cấp dừng ký gửi, cửa hàng có tự xoay được vốn lưu động không?',
+      'Trong tháng gần nhất, có đơn nào bị âm lợi nhuận mà anh/chị không xác định được nguyên nhân không?'
     ],
     rubric: {
       0: 'Không biết lãi/lỗ từng job / phụ thuộc hoàn toàn vào ký gửi',
@@ -42,8 +48,11 @@ window.CRITERIA = [
     groupName: 'Năng lực hiện tại',
     weight: 0.15,
     questions: [
-      'Đội anh có mấy người cố định?',
-      'Thợ có đi theo anh lâu không?'
+      'Đội thi công hiện có bao nhiêu người làm thường xuyên với cửa hàng?',
+      'Thợ đã gắn bó liên tục bao lâu và có phụ thuộc vào thời vụ không?',
+      'Khi có 2-3 job cùng lúc, ai là người điều phối lịch và giao việc?',
+      'Anh/chị có tiêu chuẩn tay nghề hoặc checklist bàn giao cho đội không?',
+      'Nếu có lỗi sau lắp đặt, đội có quay lại xử lý theo SLA rõ ràng không?'
     ],
     rubric: {
       0: 'Không có đội, tự làm hoặc gọi thợ tự do theo vụ',
@@ -58,8 +67,11 @@ window.CRITERIA = [
     groupName: 'Năng lực hiện tại',
     weight: 0.15,
     questions: [
-      'Khi khách khiếu nại, anh xử lý thế nào?',
-      'Ai chịu chi phí bảo hành?'
+      'Khi khách khiếu nại, ai là người đứng ra xử lý đầu tiên?',
+      'Chi phí bảo hành hoặc sửa lỗi thường do ai quyết định chi trả?',
+      'Anh/chị có ký cam kết bảo hành dưới tên cửa hàng không?',
+      'Nếu lỗi phát sinh do lắp đặt, anh/chị giải quyết như thế nào với khách và với đội thi công?',
+      'Đã từng có trường hợp phải bù chi phí để giữ uy tín chưa?'
     ],
     rubric: {
       0: 'Đổ lỗi cho nhà SX khi có sự cố / không dám ký bảo hành',
@@ -74,8 +86,11 @@ window.CRITERIA = [
     groupName: 'Năng lực hiện tại',
     weight: 0.10,
     questions: [
-      'Tại sao anh muốn tham gia ADG?',
-      'Điều gì khiến anh khó khăn nhất hiện nay?'
+      'Vì sao anh/chị muốn tham gia ADG hoặc chương trình phát triển dealer lúc này?',
+      'Hiện tại nút thắt lớn nhất là khách hàng, tài chính, đội thi công hay vận hành?',
+      'Nếu được hỗ trợ một việc trong 30 ngày tới, anh/chị muốn ưu tiên điều gì nhất?',
+      'Anh/chị có sẵn sàng thay đổi quy trình bán hàng/ghi chép/điều phối nếu hiệu quả hơn không?',
+      'Thành công sau 3 tháng với anh/chị sẽ được đo bằng chỉ số nào?'
     ],
     rubric: {
       0: 'Không muốn thay đổi cách làm hiện tại / tham gia cho có',

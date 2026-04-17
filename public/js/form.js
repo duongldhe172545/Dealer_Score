@@ -138,8 +138,11 @@ window.FormController = {
           </div>
           <span class="criteria-weight">${(c.weight * 100).toFixed(0)}%</span>
         </div>
-        <div class="criteria-questions">
-          ${c.questions.map(q => `<span class="question-tag">"${q}"</span>`).join('')}
+        <div class="criteria-questions" style="margin: 1rem 0; padding: 1rem; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+          <strong style="display: block; margin-bottom: 0.5rem; color: var(--text-dark);">Gợi ý câu hỏi khảo sát / Suggested interview questions</strong>
+          <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">
+            ${c.questions.map(q => `<li style="margin-bottom: 0.25rem;">${q}</li>`).join('')}
+          </ul>
         </div>
         <div class="criteria-response">
           <textarea id="resp-${c.code}" placeholder="Ghi lại câu trả lời của đại lý..." rows="2"></textarea>

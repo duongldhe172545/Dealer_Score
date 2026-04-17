@@ -83,7 +83,8 @@ function buildScoringPrompt(responses, criteria) {
     const response = responses[c.code] || '(Không có câu trả lời)';
     criteriaBlock += `
 ### ${c.code}: ${c.name} (Trọng số: ${c.weight})
-**Câu hỏi đã hỏi:** ${c.questions.join(' / ')}
+**Gợi ý câu hỏi khảo sát:**
+${c.questions.map(q => `- ${q}`).join('\n')}
 **Câu trả lời của đại lý:** "${response}"
 **Rubric:**
 - 0 điểm: ${c.rubric[0]}
