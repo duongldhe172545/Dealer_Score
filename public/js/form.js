@@ -43,11 +43,50 @@ window.FormController = {
 
     document.getElementById('btn-next-step1').addEventListener('click', () => {
       const name = document.getElementById('f-ten-dl').value.trim();
+      const owner = document.getElementById('f-ten-chu').value.trim();
+      const phone = document.getElementById('f-sdt').value.trim();
+      const address = document.getElementById('f-dia-chi').value.trim();
+
       if (!name) {
-        window.App.toast('Vui lòng nhập tên đại lý', 'error');
+        window.App.toast('Vui lòng nhập Tên đại lý', 'error');
         document.getElementById('f-ten-dl').focus();
         return;
       }
+      if (!owner) {
+        window.App.toast('Vui lòng nhập Tên chủ đại lý', 'error');
+        document.getElementById('f-ten-chu').focus();
+        return;
+      }
+      if (!phone) {
+        window.App.toast('Vui lòng nhập Số điện thoại', 'error');
+        document.getElementById('f-sdt').focus();
+        return;
+      }
+      const phoneRegex = /^[0-9]{10,11}$/;
+      if (!phoneRegex.test(phone)) {
+        window.App.toast('Số điện thoại không hợp lệ (phải chứa 10-11 chữ số)', 'error');
+        document.getElementById('f-sdt').focus();
+        return;
+      }
+
+      // Check if phone already exists
+      if (window.DashboardController && window.DashboardController.dealers) {
+        const isDuplicate = window.DashboardController.dealers.some(d => 
+          d.sdt === phone && d.dealer_id !== window.FormController.editingDealerId
+        );
+        if (isDuplicate) {
+          window.App.toast('Số điện thoại này đã tồn tại trong hệ thống', 'error');
+          document.getElementById('f-sdt').focus();
+          return;
+        }
+      }
+
+      if (!address) {
+        window.App.toast('Vui lòng nhập Địa chỉ', 'error');
+        document.getElementById('f-dia-chi').focus();
+        return;
+      }
+
       this.goToStep(2);
     });
 
