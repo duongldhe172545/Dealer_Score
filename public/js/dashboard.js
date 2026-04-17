@@ -12,6 +12,8 @@ window.DashboardController = {
 
   setupFilters() {
     document.getElementById('search-input').addEventListener('input', () => this.renderTable());
+    document.getElementById('search-column').addEventListener('change', () => this.renderTable());
+    document.getElementById('sort-score').addEventListener('change', () => this.renderTable());
     document.getElementById('filter-tier').addEventListener('change', () => this.renderTable());
     document.getElementById('filter-batch').addEventListener('change', () => this.renderTable());
   },
@@ -38,7 +40,6 @@ window.DashboardController = {
         window.App.toast(`❌ ${err.message}`, 'error');
       }
     });
-
   },
 
   async loadDealers() {
@@ -71,24 +72,35 @@ window.DashboardController = {
 
   renderTable() {
     const searchText = document.getElementById('search-input').value.toLowerCase();
+    const searchCol = document.getElementById('search-column').value;
+    const sortScore = document.getElementById('sort-score').value;
     const tierFilter = document.getElementById('filter-tier').value;
     const batchFilter = document.getElementById('filter-batch').value;
 
     let filtered = this.dealers;
 
     if (searchText) {
-      filtered = filtered.filter(d =>
-        (d.ten_dl || '').toLowerCase().includes(searchText) ||
-        (d.dealer_id || '').toLowerCase().includes(searchText) ||
-        (d.sdt || '').includes(searchText) ||
-        (d.ten_chu || '').toLowerCase().includes(searchText)
-      );
+      filtered = filtered.filter(d => {
+        if (searchCol === 'all') {
+          return (d.ten_dl || '').toLowerCase().includes(searchText) ||
+                 (d.dealer_id || '').toLowerCase().includes(searchText) ||
+                 (d.sdt || '').includes(searchText) ||
+                 (d.ten_chu || '').toLowerCase().includes(searchText) ||
+                 (d.dia_chi || '').toLowerCase().includes(searchText);
+        }
+        return (d[searchCol] || '').toLowerCase().includes(searchText);
+      });
     }
     if (tierFilter) {
       filtered = filtered.filter(d => d.dealer_tier === tierFilter);
     }
     if (batchFilter) {
       filtered = filtered.filter(d => d.pilot_batch === batchFilter);
+    }
+    if (sortScore === 'desc') {
+      filtered = [...filtered].sort((a, b) => (b.c_score || 0) - (a.c_score || 0));
+    } else if (sortScore === 'asc') {
+      filtered = [...filtered].sort((a, b) => (a.c_score || 0) - (b.c_score || 0));
     }
 
     const tbody = document.getElementById('dealer-tbody');

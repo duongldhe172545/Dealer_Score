@@ -161,10 +161,28 @@ window.FormController = {
   async aiScoreAll() {
     const responses = this.getResponses();
 
-    // Check if any responses are filled
-    const hasAny = Object.values(responses).some(r => r.length > 0);
+    // Find which criteria the user has NOT manually scored
+    const manuallyScored = {};
+    window.CRITERIA.forEach(c => {
+      const selected = document.querySelector(`input[name="score-${c.code}"]:checked`);
+      if (selected) manuallyScored[c.code] = true;
+    });
+
+    // Filter: only send unscored criteria to AI
+    const unscoredCriteria = window.CRITERIA.filter(c => !manuallyScored[c.code]);
+
+    if (unscoredCriteria.length === 0) {
+      window.App.toast('Bạn đã chấm hết 9 câu rồi, không cần AI nữa 👍', 'info');
+      return;
+    }
+
+    // Check if unscored criteria have responses to score
+    const unscoredResponses = {};
+    unscoredCriteria.forEach(c => { unscoredResponses[c.code] = responses[c.code]; });
+
+    const hasAny = Object.values(unscoredResponses).some(r => r && r.length > 0);
     if (!hasAny) {
-      window.App.toast('Vui lòng nhập ít nhất 1 câu trả lời để AI chấm', 'error');
+      window.App.toast(`Vui lòng nhập câu trả lời cho ${unscoredCriteria.length} câu chưa chấm để AI xử lý`, 'error');
       return;
     }
 
@@ -175,25 +193,29 @@ window.FormController = {
 
     try {
       const result = await window.API.post('/api/score-all', {
-        responses,
-        criteria: window.CRITERIA
+        responses: unscoredResponses,
+        criteria: unscoredCriteria
       });
 
       if (!result.success) {
         throw new Error(result.error || 'AI scoring failed');
       }
 
-      // Apply scores to radio buttons
+      // Apply AI scores ONLY to unscored criteria
       const aiScores = result.data;
+      let applied = 0;
       for (const [code, score] of Object.entries(aiScores)) {
+        if (manuallyScored[code]) continue; // Safety: skip if user already scored
         const radio = document.querySelector(`input[name="score-${code}"][value="${score}"]`);
         if (radio) {
           radio.checked = true;
           this.onScoreChange(code, score);
+          applied++;
         }
       }
 
-      window.App.toast('✅ AI đã chấm xong! Bạn có thể sửa lại nếu không đồng ý.', 'success');
+      const skipped = Object.keys(manuallyScored).length;
+      window.App.toast(`✅ AI đã chấm ${applied} câu! (Giữ nguyên ${skipped} câu bạn đã chấm)`, 'success');
     } catch (err) {
       window.App.toast(`❌ ${err.message}`, 'error');
     } finally {

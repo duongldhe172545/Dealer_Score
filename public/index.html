@@ -70,10 +70,23 @@
       <!-- Filters -->
       <div class="table-toolbar">
         <div class="search-box">
+          <select id="search-column" style="border:none; background:transparent; color:var(--text-secondary); font-size:0.85rem; padding:0 4px; outline:none; min-width:70px;">
+            <option value="all">Tất cả</option>
+            <option value="dealer_id">Mã ĐL</option>
+            <option value="ten_dl">Tên ĐL</option>
+            <option value="ten_chu">Chủ ĐL</option>
+            <option value="sdt">SĐT</option>
+            <option value="dia_chi">Địa chỉ</option>
+          </select>
           <span class="search-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Tìm theo tên, mã, SĐT...">
+          <input type="text" id="search-input" placeholder="Nhập từ khoá tìm kiếm...">
         </div>
         <div class="filter-group">
+          <select id="sort-score">
+            <option value="">Sắp xếp điểm</option>
+            <option value="desc">Điểm cao → thấp</option>
+            <option value="asc">Điểm thấp → cao</option>
+          </select>
           <select id="filter-tier">
             <option value="">Tất cả Tier</option>
             <option value="TIER A (NODE)">Tier A</option>
