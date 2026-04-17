@@ -146,5 +146,72 @@ router.get('/export-excel', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/sync-sharepoint
+ * Sync dealer(s) to Power Automate webhook
+ */
+router.post('/sync-sharepoint', async (req, res) => {
+  try {
+    const webhookUrl = process.env.POWER_AUTOMATE_URL;
+    if (!webhookUrl) throw new Error('Chưa cấu hình POWER_AUTOMATE_URL trong file .env');
+
+    const { dealer_id, type } = req.body;
+    let targetDealers = [];
+
+    if (type === 'all') {
+       targetDealers = db.getAllDealers();
+    } else if (dealer_id) {
+       const d = db.getDealerById(dealer_id);
+       if (d) targetDealers.push(d);
+    } else {
+       throw new Error('Thiếu tham số dealer_id hoặc type=all');
+    }
+
+    if (targetDealers.length === 0) {
+      return res.json({ success: true, message: 'Không có dữ liệu cần đồng bộ' });
+    }
+
+    const payload = targetDealers.map(d => {
+       const p = {
+           dealer_id: d.dealer_id,
+           ten_dl: d.ten_dl,
+           ten_chu: d.ten_chu,
+           sdt: d.sdt,
+           dia_chi: d.dia_chi,
+           dealer_type: d.dealer_type,
+           category_stack: d.category_stack,
+           has_install_team: d.has_install_team ? 'Yes' : 'No',
+           est_team_size: d.est_team_size,
+           c_score: d.c_score,
+           dealer_tier: d.dealer_tier,
+           pilot_batch: d.pilot_batch,
+           note: d.note
+       };
+       (d.scores || []).forEach(s => {
+          const cCode = s.criterion_code.toLowerCase();
+          p[`${cCode}_score`] = s.score;
+          p[`${cCode}_response`] = s.response;
+       });
+       return p;
+    });
+
+    const bodyData = (payload.length === 1 && !type) ? payload[0] : payload;
+
+    const fetchResult = await fetch(webhookUrl, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(bodyData)
+    });
+
+    if (!fetchResult.ok) {
+       throw new Error(`Flow HTTP Status: ${fetchResult.status}`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('SharePoint Sync Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 module.exports = router;

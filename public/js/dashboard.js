@@ -23,6 +23,10 @@ window.DashboardController = {
       window.App.showView('scoring');
     });
 
+    document.getElementById('btn-sync-all').addEventListener('click', () => {
+      this.syncAllDealers();
+    });
+
     document.getElementById('btn-export-excel').addEventListener('click', async () => {
       window.App.toast('📥 Đang tạo file Excel...', 'info');
       try {
@@ -134,6 +138,7 @@ window.DashboardController = {
             <div class="actions-cell">
               <button class="action-btn" onclick="DashboardController.viewDealer('${d.dealer_id}')" title="Xem chi tiết">👁</button>
               <button class="action-btn" onclick="DashboardController.editDealer('${d.dealer_id}')" title="Sửa">✏️</button>
+              <button class="action-btn" onclick="DashboardController.syncDealer('${d.dealer_id}')" title="Đồng bộ SP">☁️</button>
               <button class="action-btn delete" onclick="DashboardController.deleteDealer('${d.dealer_id}')" title="Xóa">🗑</button>
             </div>
           </td>
@@ -230,6 +235,39 @@ window.DashboardController = {
       this.loadDealers();
     } catch (err) {
       window.App.toast(`❌ ${err.message}`, 'error');
+    }
+  },
+
+  async syncDealer(dealerId) {
+    try {
+      window.App.toast(`☁️ Đang đồng bộ đại lý ${dealerId}...`, 'info');
+      const res = await fetch('/api/sync-sharepoint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealer_id: dealerId })
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      window.App.toast(`✅ Đồng bộ ${dealerId} thành công!`, 'success');
+    } catch (err) {
+      window.App.toast(`❌ Lỗi đồng bộ: ${err.message}`, 'error');
+    }
+  },
+
+  async syncAllDealers() {
+    if (!confirm('Đồng bộ TẤT CẢ đại lý chưa đồng bộ lên SharePoint?')) return;
+    try {
+      window.App.toast(`☁️ Đang đồng bộ hệ thống...`, 'info');
+      const res = await fetch('/api/sync-sharepoint', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ type: 'all' })
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      window.App.toast(`✅ Đã đồng bộ xong!`, 'success');
+    } catch (err) {
+      window.App.toast(`❌ Lỗi đồng bộ: ${err.message}`, 'error');
     }
   }
 };
