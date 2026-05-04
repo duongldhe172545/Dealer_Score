@@ -120,20 +120,39 @@ window.DashboardController = {
     tableEl.style.display = '';
     emptyState.classList.remove('show');
 
-    tbody.innerHTML = filtered.map(d => {
+    const truncate = (s, n) => (s || '').length > n ? s.substring(0, n) + '…' : (s || '');
+    const esc = (s) => String(s ?? '').replace(/"/g, '&quot;');
+
+    tbody.innerHTML = filtered.map((d, idx) => {
       const tierClass = window.ScoringEngine.getTierClass(d.dealer_tier || '');
-      const addr = (d.dia_chi || '').length > 30 ? d.dia_chi.substring(0, 30) + '...' : (d.dia_chi || '');
+      const addr = truncate(d.dia_chi, 30);
+      const installTeam = d.has_install_team
+        ? '<span class="cell-yes">Có</span>'
+        : '<span class="cell-no">Không</span>';
+      const teamSize = d.has_install_team ? (d.est_team_size || 0) : '-';
+      const dataPct = d.data_completeness != null ? `${d.data_completeness}%` : '-';
+      const updatedShort = (d.updated_at || '').slice(0, 16); // "YYYY-MM-DD HH:MM"
+      const noteShort = truncate(d.note, 24);
 
       return `
         <tr data-id="${d.dealer_id}">
+          <td>${idx + 1}</td>
           <td><strong>${d.dealer_id}</strong></td>
           <td>${d.ten_dl || ''}</td>
           <td>${d.ten_chu || ''}</td>
-          <td>${d.sdt || ''}</td>
-          <td title="${d.dia_chi || ''}">${addr}</td>
-          <td><strong>${d.c_score || 0}</strong></td>
+          <td class="cell-nowrap">${d.sdt || ''}</td>
+          <td title="${esc(d.dia_chi)}">${addr}</td>
           <td><span class="tier-badge ${tierClass}">${d.dealer_tier || '-'}</span></td>
+          <td>${d.dealer_type || '-'}</td>
+          <td><span class="status-badge">${d.dealer_status || '-'}</span></td>
+          <td>${d.category_stack || '-'}</td>
+          <td class="cell-center">${installTeam}</td>
+          <td class="cell-center">${teamSize}</td>
+          <td class="cell-center"><strong>${d.c_score || 0}</strong></td>
           <td><span class="batch-badge">${d.pilot_batch || '-'}</span></td>
+          <td class="cell-center">${dataPct}</td>
+          <td class="cell-nowrap" title="${esc(d.updated_at)}">${updatedShort || '-'}</td>
+          <td title="${esc(d.note)}">${noteShort || '-'}</td>
           <td>
             <div class="actions-cell">
               <button class="action-btn" onclick="DashboardController.viewDealer('${d.dealer_id}')" title="Xem chi tiết">👁</button>
