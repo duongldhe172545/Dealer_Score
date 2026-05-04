@@ -3,11 +3,14 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../lib/database');
+const { dealerIdParam, detectImageType } = require('../lib/security');
 
 const router = express.Router();
 
 const UPLOAD_BASE = path.join(__dirname, '..', 'data', 'uploads');
 if (!fs.existsSync(UPLOAD_BASE)) fs.mkdirSync(UPLOAD_BASE, { recursive: true });
+
+router.param('id', dealerIdParam);
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -73,13 +76,39 @@ router.post('/:id/photos', (req, res) => {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ success: false, error: 'Không có file nào được upload' });
     }
-    const saved = req.files.map(f => db.addDealerPhoto({
+
+    // Verify each file's actual content type by inspecting magic bytes — the
+    // request's Content-Type header can be spoofed by a malicious client.
+    const rejected = [];
+    const accepted = [];
+    for (const f of req.files) {
+      const detected = detectImageType(f.path);
+      if (!detected || !ALLOWED_MIME.includes(detected)) {
+        try { fs.unlinkSync(f.path); } catch (_) {}
+        rejected.push(f.originalname);
+        continue;
+      }
+      accepted.push({ ...f, mimetype: detected }); // trust the bytes, not the header
+    }
+    if (accepted.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Nội dung file không hợp lệ: ${rejected.join(', ')}`
+      });
+    }
+    const saved = accepted.map(f => db.addDealerPhoto({
       dealer_id: dealerId,
       filename: f.filename,
       original_name: f.originalname,
       mime_type: f.mimetype,
       size: f.size
     }));
+    if (rejected.length > 0) {
+      return res.json({
+        success: true, data: saved,
+        warning: `Một số file bị từ chối do nội dung không hợp lệ: ${rejected.join(', ')}`
+      });
+    }
     res.json({ success: true, data: saved });
   });
 });

@@ -4,12 +4,12 @@ const router = express.Router();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-pro';
 
-/**
- * POST /api/score-all
- * Body: { responses: { C1: "...", C2: "...", ... C9: "..." }, criteria: [...] }
- * Returns: { scores: { C1: 0, C2: 1, ... C9: 2 } }
- */
-router.post('/score-all', async (req, res) => {
+// =====================================================================
+// POST /api/ai/score
+// Body: { responses: { C1: "...", ..., C9: "..." }, criteria: [...] }
+// Returns: { success, data: { C1: 0|1|2, ..., C9: 0|1|2 } }
+// =====================================================================
+router.post('/score', async (req, res) => {
   try {
     if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
       return res.status(400).json({
@@ -19,18 +19,11 @@ router.post('/score-all', async (req, res) => {
     }
 
     const { responses, criteria } = req.body;
-
     if (!responses || !criteria) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing responses or criteria'
-      });
+      return res.status(400).json({ success: false, error: 'Missing responses or criteria' });
     }
 
-    // Build prompt
     const prompt = buildScoringPrompt(responses, criteria);
-
-    // Call Gemini API
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
     const geminiRes = await fetch(url, {
@@ -38,53 +31,40 @@ router.post('/score-all', async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1
-        }
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.1 }
       })
     });
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text();
       console.error('Gemini API error:', errText);
-      return res.status(500).json({
-        success: false,
-        error: `Gemini API error: ${geminiRes.status}`
-      });
+      return res.status(500).json({ success: false, error: `Gemini API error: ${geminiRes.status}` });
     }
 
     const geminiData = await geminiRes.json();
-
-    // Extract JSON from response
     let scores;
     try {
-      const textContent = geminiData.candidates[0].content.parts[0].text;
-      scores = JSON.parse(textContent);
-    } catch (parseErr) {
+      scores = JSON.parse(geminiData.candidates[0].content.parts[0].text);
+    } catch (_) {
       console.error('Failed to parse Gemini response:', geminiData);
-      return res.status(500).json({
-        success: false,
-        error: 'Không thể đọc kết quả từ AI. Vui lòng thử lại.'
-      });
+      return res.status(500).json({ success: false, error: 'Không thể đọc kết quả từ AI. Vui lòng thử lại.' });
     }
 
     res.json({ success: true, data: scores });
   } catch (err) {
-    console.error('Scoring error:', err);
+    console.error('AI scoring error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 function buildScoringPrompt(responses, criteria) {
-  let criteriaBlock = '';
-
+  let block = '';
   criteria.forEach(c => {
     const response = responses[c.code] || '(Không có câu trả lời)';
-    criteriaBlock += `
+    block += `
 ### ${c.code}: ${c.name} (Trọng số: ${c.weight})
 **Gợi ý câu hỏi khảo sát:**
-${c.questions.map(q => `- ${q}`).join('\n')}
+${(c.questions || []).map(q => `- ${q}`).join('\n')}
 **Câu trả lời của đại lý:** "${response}"
 **Rubric:**
 - 0 điểm: ${c.rubric[0]}
@@ -104,20 +84,14 @@ Nhiệm vụ: Chấm điểm 0, 1 hoặc 2 cho từng tiêu chí dựa trên câ
 5. CHỈ trả về JSON nguyên gốc, KHÔNG giải thích, KHÔNG bọc bằng markdown tick.
 
 ## CÁC TIÊU CHÍ VÀ CÂU TRẢ LỜI:
-${criteriaBlock}
+${block}
 
 ## YÊU CẦU OUTPUT:
 Trả về JSON object với key là mã tiêu chí, value là điểm (0, 1, hoặc 2):
 {
-  "C1": <0|1|2>,
-  "C2": <0|1|2>,
-  "C3": <0|1|2>,
-  "C4": <0|1|2>,
-  "C5": <0|1|2>,
-  "C6": <0|1|2>,
-  "C7": <0|1|2>,
-  "C8": <0|1|2>,
-  "C9": <0|1|2>
+  "C1": <0|1|2>, "C2": <0|1|2>, "C3": <0|1|2>,
+  "C4": <0|1|2>, "C5": <0|1|2>, "C6": <0|1|2>,
+  "C7": <0|1|2>, "C8": <0|1|2>, "C9": <0|1|2>
 }`;
 }
 

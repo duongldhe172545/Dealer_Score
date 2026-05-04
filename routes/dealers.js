@@ -1,12 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../lib/database');
+const { dealerIdParam } = require('../lib/security');
+
+// Length limits guard against abusive payloads while still leaving plenty of headroom.
+const MAX = { ten_dl: 200, ten_chu: 200, sdt: 20, dia_chi: 500, area_code: 50,
+              dealer_type: 100, category_stack: 100, note: 2000 };
+
+function sanitizeDealerInput(body) {
+  for (const [field, max] of Object.entries(MAX)) {
+    if (typeof body[field] === 'string' && body[field].length > max) {
+      throw new Error(`Trường ${field} quá dài (tối đa ${max} ký tự)`);
+    }
+  }
+}
+
+router.param('id', dealerIdParam);
 
 // GET /api/dealers — List all dealers
 router.get('/', (req, res) => {
   try {
-    const dealers = db.getAllDealers();
-    res.json({ success: true, data: dealers });
+    res.json({ success: true, data: db.getAllDealers() });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -15,30 +29,9 @@ router.get('/', (req, res) => {
 // GET /api/dealers/stats — Dashboard stats
 router.get('/stats', (req, res) => {
   try {
-    const stats = db.getStats();
-    res.json({ success: true, data: stats });
+    res.json({ success: true, data: db.getStats() });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET /api/dealers/weights — Get criteria weights
-router.get('/weights', (req, res) => {
-  try {
-    const weights = db.getWeights();
-    res.json({ success: true, data: weights });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// POST /api/dealers/weights — Save weights and trigger recalculation
-router.post('/weights', (req, res) => {
-  try {
-    db.saveWeights(req.body);
-    res.json({ success: true, message: 'Updated weights and recalculated all dealers.' });
-  } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -58,17 +51,19 @@ router.get('/:id', (req, res) => {
 // POST /api/dealers — Create dealer
 router.post('/', (req, res) => {
   try {
+    sanitizeDealerInput(req.body);
     const dealerId = db.createDealer(req.body);
     const dealer = db.getDealer(dealerId);
     res.status(201).json({ success: true, data: dealer });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
 // PUT /api/dealers/:id — Update dealer
 router.put('/:id', (req, res) => {
   try {
+    sanitizeDealerInput(req.body);
     const existing = db.getDealer(req.params.id);
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Dealer not found' });
@@ -77,7 +72,7 @@ router.put('/:id', (req, res) => {
     const dealer = db.getDealer(req.params.id);
     res.json({ success: true, data: dealer });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

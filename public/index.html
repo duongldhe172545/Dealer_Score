@@ -6,7 +6,7 @@
   <title>ADG Dealer Scoring Tool</title>
   <meta name="description" content="Công cụ chấm điểm và phân loại đại lý ADG">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=8">
+  <link rel="stylesheet" href="/css/styles.css?v=9">
 </head>
 <body>
   <!-- Header -->
@@ -31,10 +31,7 @@
         <span>Cài đặt hệ số</span>
       </button>
     </nav>
-    <div class="header-right" style="display: flex; gap: 0.5rem;">
-      <button class="btn btn-outline btn-sm" id="btn-sync-all" title="Đồng bộ lên SharePoint">
-        ☁️ Sync SharePoint
-      </button>
+    <div class="header-right">
       <button class="btn btn-outline btn-sm" id="btn-export-excel" title="Xuất Excel">
         📥 Export Excel
       </button>
@@ -226,6 +223,7 @@
 
           <div class="form-actions">
             <button class="btn btn-secondary" id="btn-cancel-form">Hủy</button>
+            <button class="btn btn-success" id="btn-save-step1" style="display:none">💾 Lưu</button>
             <button class="btn btn-primary" id="btn-next-step1">Tiếp tục →</button>
           </div>
         </div>
@@ -345,10 +343,10 @@
 
   <!-- Scripts -->
   <script src="/js/criteria.js?v=5"></script>
-  <script src="/js/api.js?v=5"></script>
+  <script src="/js/api.js?v=6"></script>
   <script src="/js/scoring.js?v=5"></script>
-  <script src="/js/form.js?v=7"></script>
-  <script src="/js/dashboard.js?v=10"></script>
-  <script src="/js/app.js?v=5"></script>
+  <script src="/js/form.js?v=11"></script>
+  <script src="/js/dashboard.js?v=12"></script>
+  <script src="/js/app.js?v=6"></script>
 </body>
 </html>

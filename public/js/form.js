@@ -48,58 +48,65 @@ window.FormController = {
     });
 
     document.getElementById('btn-next-step1').addEventListener('click', () => {
-      const name = document.getElementById('f-ten-dl').value.trim();
-      const owner = document.getElementById('f-ten-chu').value.trim();
-      const phone = document.getElementById('f-sdt').value.trim();
-      const address = document.getElementById('f-dia-chi').value.trim();
-
-      if (!name) {
-        window.App.toast('Vui lòng nhập Tên đại lý', 'error');
-        document.getElementById('f-ten-dl').focus();
-        return;
-      }
-      if (!owner) {
-        window.App.toast('Vui lòng nhập Tên chủ đại lý', 'error');
-        document.getElementById('f-ten-chu').focus();
-        return;
-      }
-      if (!phone) {
-        window.App.toast('Vui lòng nhập Số điện thoại', 'error');
-        document.getElementById('f-sdt').focus();
-        return;
-      }
-      const phoneRegex = /^[0-9]{10,11}$/;
-      if (!phoneRegex.test(phone)) {
-        window.App.toast('Số điện thoại không hợp lệ (phải chứa 10-11 chữ số)', 'error');
-        document.getElementById('f-sdt').focus();
-        return;
-      }
-
-      // Check if phone already exists
-      if (window.DashboardController && window.DashboardController.dealers) {
-        const isDuplicate = window.DashboardController.dealers.some(d => 
-          d.sdt === phone && d.dealer_id !== window.FormController.editingDealerId
-        );
-        if (isDuplicate) {
-          window.App.toast('Số điện thoại này đã tồn tại trong hệ thống', 'error');
-          document.getElementById('f-sdt').focus();
-          return;
-        }
-      }
-
-      if (!address) {
-        window.App.toast('Vui lòng nhập Địa chỉ', 'error');
-        document.getElementById('f-dia-chi').focus();
-        return;
-      }
-
+      if (!this.validateBasicInfo()) return;
       this.goToStep(2);
+    });
+
+    document.getElementById('btn-save-step1').addEventListener('click', () => {
+      if (!this.validateBasicInfo()) return;
+      this.saveDealer();
     });
 
     document.getElementById('btn-cancel-form').addEventListener('click', () => {
       this.resetForm();
-      window.App.showView('dashboard');
+      window.App.navigate('/');
     });
+  },
+
+  // Returns true if all required basic-info fields pass validation; otherwise
+  // shows a toast, focuses the offending input, and returns false.
+  validateBasicInfo() {
+    const name = document.getElementById('f-ten-dl').value.trim();
+    const owner = document.getElementById('f-ten-chu').value.trim();
+    const phone = document.getElementById('f-sdt').value.trim();
+    const address = document.getElementById('f-dia-chi').value.trim();
+
+    if (!name) {
+      window.App.toast('Vui lòng nhập Tên đại lý', 'error');
+      document.getElementById('f-ten-dl').focus();
+      return false;
+    }
+    if (!owner) {
+      window.App.toast('Vui lòng nhập Tên chủ đại lý', 'error');
+      document.getElementById('f-ten-chu').focus();
+      return false;
+    }
+    if (!phone) {
+      window.App.toast('Vui lòng nhập Số điện thoại', 'error');
+      document.getElementById('f-sdt').focus();
+      return false;
+    }
+    if (!/^[0-9]{10,11}$/.test(phone)) {
+      window.App.toast('Số điện thoại không hợp lệ (phải chứa 10-11 chữ số)', 'error');
+      document.getElementById('f-sdt').focus();
+      return false;
+    }
+    if (window.DashboardController && window.DashboardController.dealers) {
+      const isDuplicate = window.DashboardController.dealers.some(d =>
+        d.sdt === phone && d.dealer_id !== this.editingDealerId
+      );
+      if (isDuplicate) {
+        window.App.toast('Số điện thoại này đã tồn tại trong hệ thống', 'error');
+        document.getElementById('f-sdt').focus();
+        return false;
+      }
+    }
+    if (!address) {
+      window.App.toast('Vui lòng nhập Địa chỉ', 'error');
+      document.getElementById('f-dia-chi').focus();
+      return false;
+    }
+    return true;
   },
 
   getBasicInfo() {
@@ -260,7 +267,7 @@ window.FormController = {
     btn.disabled = true;
 
     try {
-      const result = await window.API.post('/api/score-all', {
+      const result = await window.API.post('/api/ai/score', {
         responses: unscoredResponses,
         criteria: unscoredCriteria
       });
@@ -356,7 +363,6 @@ window.FormController = {
 
     try {
       let result;
-      const isNewDealer = !this.editingDealerId;
       if (this.editingDealerId) {
         result = await window.API.put(`/api/dealers/${this.editingDealerId}`, dealerData);
       } else {
@@ -365,15 +371,16 @@ window.FormController = {
 
       if (!result.success) throw new Error(result.error);
 
-      // For new dealers: now that we have a dealer_id, push the staged photos.
-      if (isNewDealer && this.pendingPhotos.length > 0) {
-        await this.uploadPendingPhotosTo(result.data.dealer_id);
+      // Persist any staged photos. Both POST and PUT return the dealer record,
+      // so result.data.dealer_id works for create and edit alike.
+      const savedDealerId = result.data.dealer_id;
+      if (this.pendingPhotos.length > 0) {
+        await this.uploadPendingPhotosTo(savedDealerId);
       }
 
       window.App.toast(`✅ Đã lưu ${info.ten_dl} thành công!`, 'success');
       this.resetForm();
-      window.App.showView('dashboard');
-      window.DashboardController.loadDealers();
+      window.App.navigate(`/dealer/${savedDealerId}`);
     } catch (err) {
       window.App.toast(`❌ Lỗi: ${err.message}`, 'error');
     }
@@ -382,6 +389,7 @@ window.FormController = {
   // ==================== LOAD FOR EDIT ====================
   async loadDealer(dealer) {
     this.editingDealerId = dealer.dealer_id;
+    document.getElementById('btn-save-step1').style.display = '';
 
     // Step 1 fields
     document.getElementById('f-ten-dl').value = dealer.ten_dl || '';
@@ -428,6 +436,7 @@ window.FormController = {
 
   resetForm() {
     this.editingDealerId = null;
+    document.getElementById('btn-save-step1').style.display = 'none';
     this.goToStep(1);
 
     // Clear step 1
@@ -473,7 +482,7 @@ window.FormController = {
 
     const existingItems = this.existingPhotos.map(p => `
       <div class="photo-item">
-        <img src="/uploads/${dealerId}/${p.filename}" alt="${this.escAttr(p.original_name)}" loading="lazy">
+        <img src="/uploads/${this.escAttr(dealerId)}/${this.escAttr(p.filename)}" alt="${this.escAttr(p.original_name)}" loading="lazy">
         <button type="button" class="photo-delete" title="Xoá ảnh"
                 onclick="FormController.deleteExistingPhoto(${p.id})">×</button>
       </div>
@@ -515,12 +524,10 @@ window.FormController = {
     const files = Array.from(input.files || []);
     input.value = ''; // reset so the same file can be re-selected later
     if (files.length === 0) return;
-
-    if (this.editingDealerId) {
-      this.uploadToExisting(files);
-    } else {
-      this.stagePhotos(files);
-    }
+    // In both create-new and edit modes, photos are staged in memory and only
+    // persisted to the server when the user clicks "Lưu" — matches the user's
+    // expectation that nothing is saved until they explicitly save.
+    this.stagePhotos(files);
   },
 
   // For NEW dealer: keep files in memory until the dealer is saved.
@@ -558,34 +565,10 @@ window.FormController = {
     this.renderFormPhotos();
   },
 
-  // For EDIT mode: dealer already exists, upload immediately to API.
-  async uploadToExisting(files) {
-    if (!this.editingDealerId || files.length === 0) return;
-    const fd = new FormData();
-    files.forEach(f => fd.append('photos', f));
-
-    window.App.toast(`📤 Đang tải ${files.length} ảnh...`, 'info');
-    try {
-      const res = await fetch(`/api/dealers/${this.editingDealerId}/photos`, {
-        method: 'POST', body: fd
-      });
-      const result = await res.json();
-      if (!result.success) throw new Error(result.error);
-      this.existingPhotos = [...this.existingPhotos, ...result.data];
-      this.renderFormPhotos();
-      window.App.toast(`✅ Đã thêm ${result.data.length} ảnh`, 'success');
-    } catch (err) {
-      window.App.toast(`❌ ${err.message}`, 'error');
-    }
-  },
-
   async deleteExistingPhoto(photoId) {
     if (!confirm('Xoá ảnh này?')) return;
     try {
-      const res = await fetch(`/api/dealers/${this.editingDealerId}/photos/${photoId}`, {
-        method: 'DELETE'
-      });
-      const result = await res.json();
+      const result = await window.API.del(`/api/dealers/${this.editingDealerId}/photos/${photoId}`);
       if (!result.success) throw new Error(result.error);
       this.existingPhotos = this.existingPhotos.filter(p => p.id !== photoId);
       this.renderFormPhotos();
@@ -601,8 +584,7 @@ window.FormController = {
     const fd = new FormData();
     this.pendingPhotos.forEach(p => fd.append('photos', p.file));
     try {
-      const res = await fetch(`/api/dealers/${dealerId}/photos`, { method: 'POST', body: fd });
-      const result = await res.json();
+      const result = await window.API.upload(`/api/dealers/${dealerId}/photos`, fd);
       if (!result.success) {
         window.App.toast(`⚠️ Đại lý đã lưu nhưng tải ảnh lỗi: ${result.error}`, 'error');
       }

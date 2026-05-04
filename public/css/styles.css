@@ -374,6 +374,49 @@ body {
   vertical-align: middle;
 }
 
+/* ===== Section title (h3 inside detail / form) — replaces inline h3 styles ===== */
+.section-title {
+  margin: 1.5rem 0 1rem;
+  font-size: 1rem;
+  color: var(--text-secondary, var(--text-primary));
+  font-weight: 600;
+}
+.muted-note {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
+/* ===== Detail view header / meta block ===== */
+.detail-id-suffix { color: var(--text-muted); font-weight: 400; }
+.detail-meta { display: flex; gap: 8px; align-items: center; }
+.tier-badge-lg { font-size: 0.9rem; padding: 6px 14px; }
+.batch-badge-lg { font-size: 0.85rem; padding: 6px 12px; }
+.detail-cscore {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent-light, var(--accent, #818cf8));
+  margin-left: 8px;
+}
+.detail-field-full { grid-column: 1 / -1; }
+.breakdown-row-detail {
+  grid-template-columns: 50px 1fr 50px 70px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 8px;
+}
+
+/* ===== Settings modal weights row (replaces inline form-group flex styles) ===== */
+.weights-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 12px;
+}
+.weights-row label { flex: 1; }
+.weights-row input { width: 100px; text-align: right; }
+
 /* ===== RESPONSES LIST (detail view) ===== */
 .responses-list {
   display: flex;
