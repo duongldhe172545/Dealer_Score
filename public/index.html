@@ -6,7 +6,7 @@
   <title>ADG Dealer Scoring Tool</title>
   <meta name="description" content="Công cụ chấm điểm và phân loại đại lý ADG">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=4">
+  <link rel="stylesheet" href="/css/styles.css?v=8">
 </head>
 <body>
   <!-- Header -->
@@ -111,24 +111,26 @@
         <table class="dealer-table" id="dealer-table">
           <thead>
             <tr>
-              <th>STT</th>
-              <th>Mã ĐL</th>
-              <th>Tên ĐL</th>
-              <th>Chủ ĐL</th>
-              <th>SĐT</th>
-              <th>Địa chỉ</th>
-              <th>Tier</th>
-              <th>Loại ĐL</th>
-              <th>Trạng thái</th>
-              <th>Ngành hàng</th>
-              <th>Đội lắp đặt</th>
-              <th>Số thợ</th>
-              <th>C_Score</th>
-              <th>Batch</th>
-              <th>Data %</th>
-              <th>Cập nhật</th>
-              <th>Ghi chú</th>
-              <th>Thao tác</th>
+              <th class="col-checkbox"><input type="checkbox" id="select-all-dealers" title="Chọn tất cả"></th>
+              <th class="col-stt">STT</th>
+              <th class="col-id">Mã ĐL</th>
+              <th class="col-name">Tên ĐL</th>
+              <th class="col-owner">Chủ ĐL</th>
+              <th class="col-phone">SĐT</th>
+              <th class="col-address">Địa chỉ</th>
+              <th class="col-area">Mã địa danh</th>
+              <th class="col-tier">Tier</th>
+              <th class="col-type">Loại ĐL</th>
+              <th class="col-status">Trạng thái</th>
+              <th class="col-category">Ngành hàng</th>
+              <th class="col-install">Đội lắp đặt</th>
+              <th class="col-team">Số thợ</th>
+              <th class="col-cscore">C_Score</th>
+              <th class="col-batch">Batch</th>
+              <th class="col-data">Data %</th>
+              <th class="col-updated">Cập nhật</th>
+              <th class="col-note">Ghi chú</th>
+              <th class="col-actions">Thao tác</th>
             </tr>
           </thead>
           <tbody id="dealer-tbody">
@@ -186,6 +188,10 @@
               <input type="text" id="f-dia-chi" placeholder="Số 002-004, Phan Kế Bính, Bắc Cường, Lào Cai" required>
             </div>
             <div class="form-group">
+              <label for="f-area-code">Mã địa danh hành chính</label>
+              <input type="text" id="f-area-code" placeholder="VD: 31116/31000/15 (Phường/TP/Tỉnh)">
+            </div>
+            <div class="form-group">
               <label for="f-dealer-type">Loại đại lý</label>
               <input type="text" id="f-dealer-type" placeholder="VD: Xưởng sản xuất, ĐL phân phối...">
             </div>
@@ -212,6 +218,12 @@
               <textarea id="f-note" rows="2" placeholder="Ghi chú thêm..."></textarea>
             </div>
           </div>
+
+          <div class="form-photos-section">
+            <h3 class="form-photos-title">📷 Ảnh đại lý <span class="photo-count" id="form-photo-count">0/5</span></h3>
+            <div id="form-photo-gallery"></div>
+          </div>
+
           <div class="form-actions">
             <button class="btn btn-secondary" id="btn-cancel-form">Hủy</button>
             <button class="btn btn-primary" id="btn-next-step1">Tiếp tục →</button>
@@ -335,8 +347,8 @@
   <script src="/js/criteria.js?v=5"></script>
   <script src="/js/api.js?v=5"></script>
   <script src="/js/scoring.js?v=5"></script>
-  <script src="/js/form.js?v=5"></script>
-  <script src="/js/dashboard.js?v=6"></script>
+  <script src="/js/form.js?v=7"></script>
+  <script src="/js/dashboard.js?v=10"></script>
   <script src="/js/app.js?v=5"></script>
 </body>
 </html>

@@ -4,12 +4,18 @@
 window.FormController = {
   currentStep: 1,
   editingDealerId: null,
+  pendingPhotos: [],   // [{file, previewUrl}] — only used when creating a new dealer
+  existingPhotos: [],  // photos already in DB (only set in edit mode)
+  MAX_PHOTOS_PER_DEALER: 5,
+  ALLOWED_PHOTO_MIME: ['image/jpeg', 'image/png', 'image/webp'],
+  MAX_PHOTO_SIZE: 5 * 1024 * 1024,
 
   init() {
     this.setupStep1();
     this.setupStep2();
     this.setupStep3();
     this.renderCriteriaCards();
+    this.renderFormPhotos();
   },
 
   // ==================== STEP NAVIGATION ====================
@@ -102,6 +108,7 @@ window.FormController = {
       ten_chu: document.getElementById('f-ten-chu').value.trim(),
       sdt: document.getElementById('f-sdt').value.trim(),
       dia_chi: document.getElementById('f-dia-chi').value.trim(),
+      area_code: document.getElementById('f-area-code').value.trim(),
       dealer_type: document.getElementById('f-dealer-type').value.trim(),
       category_stack: document.getElementById('f-category').value.trim(),
       has_install_team: document.getElementById('f-install-team').checked,
@@ -349,6 +356,7 @@ window.FormController = {
 
     try {
       let result;
+      const isNewDealer = !this.editingDealerId;
       if (this.editingDealerId) {
         result = await window.API.put(`/api/dealers/${this.editingDealerId}`, dealerData);
       } else {
@@ -356,6 +364,11 @@ window.FormController = {
       }
 
       if (!result.success) throw new Error(result.error);
+
+      // For new dealers: now that we have a dealer_id, push the staged photos.
+      if (isNewDealer && this.pendingPhotos.length > 0) {
+        await this.uploadPendingPhotosTo(result.data.dealer_id);
+      }
 
       window.App.toast(`✅ Đã lưu ${info.ten_dl} thành công!`, 'success');
       this.resetForm();
@@ -367,7 +380,7 @@ window.FormController = {
   },
 
   // ==================== LOAD FOR EDIT ====================
-  loadDealer(dealer) {
+  async loadDealer(dealer) {
     this.editingDealerId = dealer.dealer_id;
 
     // Step 1 fields
@@ -375,6 +388,7 @@ window.FormController = {
     document.getElementById('f-ten-chu').value = dealer.ten_chu || '';
     document.getElementById('f-sdt').value = dealer.sdt || '';
     document.getElementById('f-dia-chi').value = dealer.dia_chi || '';
+    document.getElementById('f-area-code').value = dealer.area_code || '';
     document.getElementById('f-dealer-type').value = dealer.dealer_type || '';
     document.getElementById('f-category').value = dealer.category_stack || '';
     document.getElementById('f-note').value = dealer.note || '';
@@ -401,6 +415,15 @@ window.FormController = {
     }
 
     this.updateRunningTotal();
+
+    // Load existing photos for this dealer (don't block on errors)
+    try {
+      const res = await window.API.get(`/api/dealers/${dealer.dealer_id}/photos`);
+      this.existingPhotos = (res && res.success) ? res.data : [];
+    } catch (_) {
+      this.existingPhotos = [];
+    }
+    this.renderFormPhotos();
   },
 
   resetForm() {
@@ -408,7 +431,7 @@ window.FormController = {
     this.goToStep(1);
 
     // Clear step 1
-    ['f-ten-dl', 'f-ten-chu', 'f-sdt', 'f-dia-chi', 'f-dealer-type', 'f-category', 'f-note'].forEach(id => {
+    ['f-ten-dl', 'f-ten-chu', 'f-sdt', 'f-dia-chi', 'f-area-code', 'f-dealer-type', 'f-category', 'f-note'].forEach(id => {
       document.getElementById(id).value = '';
     });
     document.getElementById('f-install-team').checked = false;
@@ -427,5 +450,164 @@ window.FormController = {
     });
 
     document.getElementById('running-score').textContent = '0';
+
+    // Clear photos (revoke object URLs to free memory)
+    this.pendingPhotos.forEach(p => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+    this.pendingPhotos = [];
+    this.existingPhotos = [];
+    this.renderFormPhotos();
+  },
+
+  // ==================== PHOTOS (form integration) ====================
+
+  renderFormPhotos() {
+    const gallery = document.getElementById('form-photo-gallery');
+    const counter = document.getElementById('form-photo-count');
+    if (!gallery) return;
+
+    const totalCount = this.existingPhotos.length + this.pendingPhotos.length;
+    const remaining = this.MAX_PHOTOS_PER_DEALER - totalCount;
+    const dealerId = this.editingDealerId;
+
+    if (counter) counter.textContent = `${totalCount}/${this.MAX_PHOTOS_PER_DEALER}`;
+
+    const existingItems = this.existingPhotos.map(p => `
+      <div class="photo-item">
+        <img src="/uploads/${dealerId}/${p.filename}" alt="${this.escAttr(p.original_name)}" loading="lazy">
+        <button type="button" class="photo-delete" title="Xoá ảnh"
+                onclick="FormController.deleteExistingPhoto(${p.id})">×</button>
+      </div>
+    `).join('');
+
+    const pendingItems = this.pendingPhotos.map((p, idx) => `
+      <div class="photo-item photo-staged">
+        <img src="${p.previewUrl}" alt="">
+        <button type="button" class="photo-delete" title="Bỏ chọn"
+                onclick="FormController.removeStagedPhoto(${idx})">×</button>
+        <span class="photo-staged-tag">Mới</span>
+      </div>
+    `).join('');
+
+    const addBtn = remaining > 0 ? `
+      <label class="photo-add-btn" title="Thêm ảnh (còn ${remaining})">
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+               onchange="FormController.handleFileInput(this)">
+        <span class="photo-add-icon">+</span>
+        <span class="photo-add-label">Thêm ảnh</span>
+      </label>
+    ` : '';
+
+    gallery.innerHTML = `
+      <div class="photo-gallery">
+        ${existingItems}${pendingItems}${addBtn}
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin:0.5rem 0 0">
+        JPG / PNG / WEBP, tối đa 5MB/ảnh, ${this.MAX_PHOTOS_PER_DEALER} ảnh/đại lý.
+      </p>
+    `;
+  },
+
+  escAttr(s) {
+    return String(s ?? '').replace(/"/g, '&quot;');
+  },
+
+  handleFileInput(input) {
+    const files = Array.from(input.files || []);
+    input.value = ''; // reset so the same file can be re-selected later
+    if (files.length === 0) return;
+
+    if (this.editingDealerId) {
+      this.uploadToExisting(files);
+    } else {
+      this.stagePhotos(files);
+    }
+  },
+
+  // For NEW dealer: keep files in memory until the dealer is saved.
+  stagePhotos(files) {
+    const slotsLeft = this.MAX_PHOTOS_PER_DEALER - this.existingPhotos.length - this.pendingPhotos.length;
+    const errors = [];
+    let added = 0;
+
+    for (const f of files) {
+      if (added >= slotsLeft) {
+        errors.push(`Vượt giới hạn ${this.MAX_PHOTOS_PER_DEALER} ảnh, bỏ qua "${f.name}"`);
+        continue;
+      }
+      if (!this.ALLOWED_PHOTO_MIME.includes(f.type)) {
+        errors.push(`"${f.name}": định dạng không hỗ trợ`);
+        continue;
+      }
+      if (f.size > this.MAX_PHOTO_SIZE) {
+        errors.push(`"${f.name}": vượt 5MB`);
+        continue;
+      }
+      this.pendingPhotos.push({ file: f, previewUrl: URL.createObjectURL(f) });
+      added++;
+    }
+
+    if (added > 0) window.App.toast(`📷 Đã chọn ${added} ảnh (sẽ tải lên khi lưu)`, 'info');
+    if (errors.length) window.App.toast(`⚠️ ${errors.join('; ')}`, 'error');
+    this.renderFormPhotos();
+  },
+
+  removeStagedPhoto(idx) {
+    const p = this.pendingPhotos[idx];
+    if (p?.previewUrl) URL.revokeObjectURL(p.previewUrl);
+    this.pendingPhotos.splice(idx, 1);
+    this.renderFormPhotos();
+  },
+
+  // For EDIT mode: dealer already exists, upload immediately to API.
+  async uploadToExisting(files) {
+    if (!this.editingDealerId || files.length === 0) return;
+    const fd = new FormData();
+    files.forEach(f => fd.append('photos', f));
+
+    window.App.toast(`📤 Đang tải ${files.length} ảnh...`, 'info');
+    try {
+      const res = await fetch(`/api/dealers/${this.editingDealerId}/photos`, {
+        method: 'POST', body: fd
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      this.existingPhotos = [...this.existingPhotos, ...result.data];
+      this.renderFormPhotos();
+      window.App.toast(`✅ Đã thêm ${result.data.length} ảnh`, 'success');
+    } catch (err) {
+      window.App.toast(`❌ ${err.message}`, 'error');
+    }
+  },
+
+  async deleteExistingPhoto(photoId) {
+    if (!confirm('Xoá ảnh này?')) return;
+    try {
+      const res = await fetch(`/api/dealers/${this.editingDealerId}/photos/${photoId}`, {
+        method: 'DELETE'
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+      this.existingPhotos = this.existingPhotos.filter(p => p.id !== photoId);
+      this.renderFormPhotos();
+      window.App.toast('🗑 Đã xoá ảnh', 'success');
+    } catch (err) {
+      window.App.toast(`❌ ${err.message}`, 'error');
+    }
+  },
+
+  // Called from saveDealer after a NEW dealer was successfully created.
+  async uploadPendingPhotosTo(dealerId) {
+    if (this.pendingPhotos.length === 0) return;
+    const fd = new FormData();
+    this.pendingPhotos.forEach(p => fd.append('photos', p.file));
+    try {
+      const res = await fetch(`/api/dealers/${dealerId}/photos`, { method: 'POST', body: fd });
+      const result = await res.json();
+      if (!result.success) {
+        window.App.toast(`⚠️ Đại lý đã lưu nhưng tải ảnh lỗi: ${result.error}`, 'error');
+      }
+    } catch (err) {
+      window.App.toast(`⚠️ Đại lý đã lưu nhưng tải ảnh lỗi: ${err.message}`, 'error');
+    }
   }
 };

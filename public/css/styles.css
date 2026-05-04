@@ -304,10 +304,9 @@ body {
 .dealer-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1600px;
 }
 .dealer-table th {
-  padding: 12px 14px;
+  padding: 12px 12px;
   text-align: left;
   font-size: 0.78rem;
   font-weight: 600;
@@ -317,9 +316,12 @@ body {
   border-bottom: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .dealer-table td {
-  padding: 12px 14px;
+  padding: 12px 12px;
   font-size: 0.88rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   vertical-align: middle;
@@ -339,6 +341,202 @@ body {
   font-weight: 600;
   background: rgba(34, 197, 94, 0.15);
   color: #22c55e;
+}
+
+/* Per-column sizing — keeps content readable, prevents the squashed look. */
+.dealer-table .col-checkbox { width: 38px; min-width: 38px; text-align: center; padding: 8px 4px; }
+.dealer-table .col-stt      { width: 50px;  min-width: 50px;  text-align: center; }
+.dealer-table .col-id       { min-width: 88px; white-space: nowrap; }
+.dealer-table .col-name     { min-width: 150px; max-width: 200px; }
+.dealer-table .col-owner    { min-width: 110px; }
+.dealer-table .col-phone    { min-width: 110px; }
+.dealer-table .col-address  { min-width: 240px; max-width: 280px; white-space: normal; word-break: break-word; line-height: 1.4; }
+.dealer-table .col-area     { min-width: 110px; }
+.dealer-table .col-tier     { min-width: 130px; white-space: nowrap; }
+.dealer-table .col-type     { min-width: 110px; }
+.dealer-table .col-status   { min-width: 90px; }
+.dealer-table .col-category { min-width: 110px; }
+.dealer-table .col-install  { min-width: 100px; }
+.dealer-table .col-team     { min-width: 70px; }
+.dealer-table .col-cscore   { min-width: 80px; }
+.dealer-table .col-batch    { min-width: 86px; white-space: nowrap; }
+.dealer-table .col-data     { min-width: 70px; }
+.dealer-table .col-updated  { min-width: 130px; }
+.dealer-table .col-note     { min-width: 180px; max-width: 240px; white-space: normal; word-break: break-word; line-height: 1.4; }
+.dealer-table .col-actions  { min-width: 150px; white-space: nowrap; }
+
+.dealer-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent, #6366f1);
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* ===== RESPONSES LIST (detail view) ===== */
+.responses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.response-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.response-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.response-code {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent, #818cf8);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.response-name {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.response-text {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-style: italic;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.response-text::before { content: '"'; }
+.response-text::after  { content: '"'; }
+
+/* ===== PHOTO GALLERY (detail view) ===== */
+.photo-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent, #818cf8);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 0.5rem;
+}
+.photo-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm, 8px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-body, #0f172a);
+}
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+.photo-item:hover img { transform: scale(1.04); }
+.photo-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  line-height: 1;
+}
+.photo-item:hover .photo-delete { opacity: 1; }
+.photo-delete:hover { background: #dc2626; }
+
+.photo-add-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 1 / 1;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+.photo-add-btn:hover {
+  border-color: var(--accent, #6366f1);
+  color: var(--accent, #818cf8);
+  background: rgba(99, 102, 241, 0.05);
+}
+.photo-add-btn input[type="file"] { display: none; }
+.photo-add-icon {
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1;
+}
+.photo-add-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* Staged photo (selected but not yet uploaded — only shown for new dealers) */
+.photo-item.photo-staged { border-color: var(--accent, #6366f1); }
+.photo-staged-tag {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.85);
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+/* Photos section inside the scoring form (Step 1) */
+.form-photos-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.form-photos-title {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary, var(--text-primary));
+  font-weight: 600;
 }
 
 /* Tier badges */

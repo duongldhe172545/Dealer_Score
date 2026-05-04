@@ -6,12 +6,19 @@ const db = require('../lib/database');
 
 
 /**
- * GET /api/export-excel
- * Export all dealers to Excel file
+ * POST /api/export-excel
+ * Body: { ids?: string[] }
+ *  - If ids is provided and non-empty: only export those dealer_ids
+ *  - Otherwise: export all dealers
  */
-router.get('/export-excel', async (req, res) => {
+router.post('/export-excel', async (req, res) => {
   try {
-    const dealers = db.getAllDealers();
+    const { ids } = req.body || {};
+    let dealers = db.getAllDealers();
+    if (Array.isArray(ids) && ids.length > 0) {
+      const idSet = new Set(ids);
+      dealers = dealers.filter(d => idSet.has(d.dealer_id));
+    }
     const workbook = new ExcelJS.Workbook();
 
     // --- Sheet 1: Dealer Data ---
@@ -25,6 +32,7 @@ router.get('/export-excel', async (req, res) => {
       { header: 'Tên chủ ĐL', key: 'ten_chu', width: 18 },
       { header: 'SĐT', key: 'sdt', width: 15 },
       { header: 'Địa chỉ', key: 'dia_chi', width: 35 },
+      { header: 'Mã địa danh', key: 'area_code', width: 16 },
       { header: 'Loại ĐL', key: 'dealer_type', width: 18 },
       { header: 'Ngành hàng', key: 'category_stack', width: 18 },
       { header: 'Có đội lắp đặt', key: 'has_install_team', width: 15 },
@@ -69,6 +77,7 @@ router.get('/export-excel', async (req, res) => {
         ten_chu: d.ten_chu,
         sdt: d.sdt,
         dia_chi: d.dia_chi,
+        area_code: d.area_code,
         dealer_type: d.dealer_type,
         category_stack: d.category_stack,
         has_install_team: d.has_install_team ? 'Có' : 'Không',
@@ -93,8 +102,8 @@ router.get('/export-excel', async (req, res) => {
       });
     });
 
-    // Auto-filter
-    ws.autoFilter = { from: 'A1', to: `AA${dealers.length + 1}` };
+    // Auto-filter (28 columns → A..AB)
+    ws.autoFilter = { from: 'A1', to: `AB${dealers.length + 1}` };
 
     // --- Sheet 2: Scoring Responses ---
     const ws2 = workbook.addWorksheet('Responses');

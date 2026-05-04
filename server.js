@@ -12,8 +12,11 @@ db.getDb();
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
 
 // Routes
+app.use('/api/dealers', require('./routes/photos'));
+app.use('/api/dealers', require('./routes/pdf'));
 app.use('/api/dealers', require('./routes/dealers'));
 app.use('/api', require('./routes/scoring'));
 app.use('/api', require('./routes/sync'));
