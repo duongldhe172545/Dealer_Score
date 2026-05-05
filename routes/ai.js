@@ -37,7 +37,7 @@ router.post('/score', async (req, res) => {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text();
-      console.error('Gemini API error:', errText);
+      req.log.error({ status: geminiRes.status, body: errText }, 'Gemini API non-2xx');
       return res.status(500).json({ success: false, error: `Gemini API error: ${geminiRes.status}` });
     }
 
@@ -46,13 +46,13 @@ router.post('/score', async (req, res) => {
     try {
       scores = JSON.parse(geminiData.candidates[0].content.parts[0].text);
     } catch (_) {
-      console.error('Failed to parse Gemini response:', geminiData);
+      req.log.error({ geminiData }, 'Failed to parse Gemini response');
       return res.status(500).json({ success: false, error: 'Không thể đọc kết quả từ AI. Vui lòng thử lại.' });
     }
 
     res.json({ success: true, data: scores });
   } catch (err) {
-    console.error('AI scoring error:', err);
+    req.log.error({ err }, 'AI scoring error');
     res.status(500).json({ success: false, error: err.message });
   }
 });

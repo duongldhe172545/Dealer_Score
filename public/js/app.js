@@ -6,13 +6,34 @@
  */
 window.App = {
   async init() {
-    await this.loadWeights();
+    // Config + weights need to be loaded before controllers render anything,
+    // because dashboard/form use window.CONFIG for limits and window.CRITERIA
+    // weights for tier/batch preview.
+    await Promise.all([this.loadConfig(), this.loadWeights()]);
     this.setupSettingsModal();
     window.FormController.init();
     window.DashboardController.init();
     this.setupNav();
     this.setupRouter();
     this.routeFromLocation();
+  },
+
+  // Load server config (thresholds, file limits, enums) into window.CONFIG.
+  // Provides safe fallbacks so the UI still works if /api/config is down.
+  async loadConfig() {
+    const fallback = {
+      MAX_PHOTOS_PER_DEALER: 5,
+      MAX_PHOTO_SIZE: 5 * 1024 * 1024,
+      ALLOWED_PHOTO_MIME: ['image/jpeg', 'image/png', 'image/webp'],
+      TIER_THRESHOLDS: { A: 75, B: 50, C: 30 },
+      BATCH_THRESHOLDS: { BATCH1_MIN_SCORE: 60 }
+    };
+    try {
+      const res = await window.API.get('/api/config');
+      window.CONFIG = (res && res.success) ? res.data : fallback;
+    } catch (_) {
+      window.CONFIG = fallback;
+    }
   },
 
   async loadWeights() {

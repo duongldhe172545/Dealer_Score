@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../lib/database');
 const { dealerIdParam, detectImageType } = require('../lib/security');
+const { CONFIG } = require('../lib/config');
 
 const router = express.Router();
 
@@ -11,10 +12,6 @@ const UPLOAD_BASE = path.join(__dirname, '..', 'data', 'uploads');
 if (!fs.existsSync(UPLOAD_BASE)) fs.mkdirSync(UPLOAD_BASE, { recursive: true });
 
 router.param('id', dealerIdParam);
-
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const MAX_PER_DEALER = 5;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -30,14 +27,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: MAX_FILE_SIZE },
+  limits: { fileSize: CONFIG.MAX_PHOTO_SIZE },
   fileFilter: (req, file, cb) => {
-    if (!ALLOWED_MIME.includes(file.mimetype)) {
+    if (!CONFIG.ALLOWED_PHOTO_MIME.includes(file.mimetype)) {
       return cb(new Error(`Định dạng ${file.mimetype} không được hỗ trợ. Chỉ chấp nhận JPG, PNG, WEBP.`));
     }
     cb(null, true);
   }
 });
+
+function safeUnlink(p) {
+  try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (_) {}
+}
 
 // GET list photos
 router.get('/:id/photos', (req, res) => {
@@ -58,9 +59,9 @@ router.post('/:id/photos', (req, res) => {
   if (!dealer) return res.status(404).json({ success: false, error: 'Dealer not found' });
 
   const existing = db.getDealerPhotos(dealerId).length;
-  const remaining = MAX_PER_DEALER - existing;
+  const remaining = CONFIG.MAX_PHOTOS_PER_DEALER - existing;
   if (remaining <= 0) {
-    return res.status(400).json({ success: false, error: `Đã đạt giới hạn ${MAX_PER_DEALER} ảnh/đại lý` });
+    return res.status(400).json({ success: false, error: `Đã đạt giới hạn ${CONFIG.MAX_PHOTOS_PER_DEALER} ảnh/đại lý` });
   }
 
   upload.array('photos', remaining)(req, res, (err) => {
@@ -83,8 +84,8 @@ router.post('/:id/photos', (req, res) => {
     const accepted = [];
     for (const f of req.files) {
       const detected = detectImageType(f.path);
-      if (!detected || !ALLOWED_MIME.includes(detected)) {
-        try { fs.unlinkSync(f.path); } catch (_) {}
+      if (!detected || !CONFIG.ALLOWED_PHOTO_MIME.includes(detected)) {
+        safeUnlink(f.path);
         rejected.push(f.originalname);
         continue;
       }
@@ -96,13 +97,27 @@ router.post('/:id/photos', (req, res) => {
         error: `Nội dung file không hợp lệ: ${rejected.join(', ')}`
       });
     }
-    const saved = accepted.map(f => db.addDealerPhoto({
-      dealer_id: dealerId,
-      filename: f.filename,
-      original_name: f.originalname,
-      mime_type: f.mimetype,
-      size: f.size
-    }));
+
+    // All-or-nothing batch insert: if the DB write fails for any reason, the
+    // transaction rolls back AND we delete the disk files we just wrote, so we
+    // never leave orphans behind.
+    let saved;
+    try {
+      saved = db.addDealerPhotosBatch(accepted.map(f => ({
+        dealer_id: dealerId,
+        filename: f.filename,
+        original_name: f.originalname,
+        mime_type: f.mimetype,
+        size: f.size
+      })));
+    } catch (dbErr) {
+      for (const f of accepted) safeUnlink(f.path);
+      return res.status(500).json({
+        success: false,
+        error: `Lưu DB thất bại, đã hủy upload: ${dbErr.message}`
+      });
+    }
+
     if (rejected.length > 0) {
       return res.json({
         success: true, data: saved,
@@ -122,7 +137,7 @@ router.delete('/:id/photos/:photoId', (req, res) => {
       return res.status(404).json({ success: false, error: 'Photo not found' });
     }
     const filePath = path.join(UPLOAD_BASE, dealerId, photo.filename);
-    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (_) {}
+    safeUnlink(filePath);
     db.deleteDealerPhoto(photoId);
     res.json({ success: true });
   } catch (err) {

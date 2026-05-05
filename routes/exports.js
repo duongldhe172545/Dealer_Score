@@ -110,7 +110,7 @@ router.post('/excel', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
     res.send(Buffer.from(buffer));
   } catch (err) {
-    console.error('Excel export error:', err);
+    req.log.error({ err }, 'Excel export error');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -149,7 +149,7 @@ router.post('/pdf', async (req, res) => {
 
     doc.end();
   } catch (err) {
-    console.error('PDF list export error:', err);
+    req.log.error({ err }, 'PDF list export error');
     if (!res.headersSent) res.status(500).json({ success: false, error: err.message });
     else res.end();
   }
@@ -194,7 +194,7 @@ router.post('/dealers/:id/pdf', async (req, res) => {
 
     doc.end();
   } catch (err) {
-    console.error('PDF export error:', err);
+    req.log.error({ err }, 'Single-dealer PDF export error');
     if (!res.headersSent) {
       res.status(500).json({ success: false, error: err.message });
     } else {

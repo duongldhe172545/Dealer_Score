@@ -8,7 +8,9 @@ window.DashboardController = {
   dealers: [],
   selectedIds: new Set(),
   filteredIds: [],
-  MAX_PHOTOS_PER_DEALER: 5,
+  // Read from window.CONFIG (populated by App.loadConfig). Fallback to 5
+  // if config hasn't loaded yet (defensive).
+  get MAX_PHOTOS_PER_DEALER() { return (window.CONFIG && window.CONFIG.MAX_PHOTOS_PER_DEALER) || 5; },
 
   init() {
     this.setupFilters();
@@ -372,39 +374,30 @@ window.DashboardController = {
   // ==================== PHOTOS ====================
 
   renderPhotosSection(dealerId, photos) {
-    const count = photos.length;
-    const remaining = this.MAX_PHOTOS_PER_DEALER - count;
-    const items = photos.map(p => `
-      <div class="photo-item">
-        <img src="/uploads/${ea(dealerId)}/${ea(p.filename)}" alt="${ea(p.original_name)}" loading="lazy">
-        <button class="photo-delete" title="Xoá ảnh"
-                onclick="DashboardController.deletePhoto('${ea(dealerId)}', ${p.id})">×</button>
-      </div>
-    `).join('');
-
-    const addBtn = remaining > 0 ? `
-      <label class="photo-add-btn" title="Thêm ảnh (còn ${remaining})">
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
-               onchange="DashboardController.uploadPhotos('${ea(dealerId)}', this)">
-        <span class="photo-add-icon">+</span>
-        <span class="photo-add-label">Thêm ảnh</span>
-      </label>
-    ` : '';
-
+    const grid = window.U.renderPhotoGrid({
+      dealerId,
+      maxPhotos: this.MAX_PHOTOS_PER_DEALER,
+      existing: photos,
+      onDelete: `DashboardController.deletePhoto('${ea(dealerId)}', {ID})`,
+      onAdd: `DashboardController.uploadPhotos('${ea(dealerId)}', this)`
+    });
     return `
       <h3 class="section-title">
-        📷 Ảnh đại lý <span class="photo-count">${count}/${this.MAX_PHOTOS_PER_DEALER}</span>
+        📷 Ảnh đại lý <span class="photo-count">${grid.count}/${grid.max}</span>
       </h3>
-      <div class="photo-gallery">${items}${addBtn}</div>
-      <p class="muted-note">JPG / PNG / WEBP, tối đa 5MB/ảnh, ${this.MAX_PHOTOS_PER_DEALER} ảnh/đại lý.</p>
+      ${grid.html}
     `;
   },
 
   async refreshPhotos(dealerId) {
     const section = document.getElementById('photos-section');
     if (!section) return;
-    const res = await window.API.get(`/api/dealers/${dealerId}/photos`);
-    if (res.success) section.innerHTML = this.renderPhotosSection(dealerId, res.data);
+    try {
+      const res = await window.API.get(`/api/dealers/${dealerId}/photos`);
+      if (res.success) section.innerHTML = this.renderPhotosSection(dealerId, res.data);
+    } catch (err) {
+      window.App.toast(`❌ Không tải được ảnh: ${err.message}`, 'error');
+    }
   },
 
   async uploadPhotos(dealerId, input) {
@@ -439,6 +432,7 @@ window.DashboardController = {
   }
 };
 
-// ---- escape helpers (file-local; same scope as the controller) ----
-const eh = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const ea = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// ---- escape helpers — thin aliases over window.U so older code in this
+// file (which uses bare `eh()`/`ea()`) keeps working unchanged ----
+const eh = (s) => window.U.escHtml(s);
+const ea = (s) => window.U.escAttr(s);

@@ -606,15 +606,6 @@ body {
   color: var(--text-secondary);
 }
 
-.sync-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.sync-dot.synced { background: var(--success); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
-.sync-dot.unsynced { background: var(--warning); box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
-
 .actions-cell { display: flex; gap: 4px; }
 .action-btn {
   padding: 5px 8px;

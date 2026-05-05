@@ -6,9 +6,13 @@ window.FormController = {
   editingDealerId: null,
   pendingPhotos: [],   // [{file, previewUrl}] — only used when creating a new dealer
   existingPhotos: [],  // photos already in DB (only set in edit mode)
-  MAX_PHOTOS_PER_DEALER: 5,
-  ALLOWED_PHOTO_MIME: ['image/jpeg', 'image/png', 'image/webp'],
-  MAX_PHOTO_SIZE: 5 * 1024 * 1024,
+
+  // Photo limits resolve from window.CONFIG (populated by App.loadConfig).
+  // Defined as getters so they always read the latest config — even if the
+  // controller was constructed before /api/config returned.
+  get MAX_PHOTOS_PER_DEALER() { return (window.CONFIG && window.CONFIG.MAX_PHOTOS_PER_DEALER) || 5; },
+  get ALLOWED_PHOTO_MIME()    { return (window.CONFIG && window.CONFIG.ALLOWED_PHOTO_MIME) || ['image/jpeg', 'image/png', 'image/webp']; },
+  get MAX_PHOTO_SIZE()        { return (window.CONFIG && window.CONFIG.MAX_PHOTO_SIZE) || 5 * 1024 * 1024; },
 
   init() {
     this.setupStep1();
@@ -343,6 +347,14 @@ window.FormController = {
   },
 
   async saveDealer() {
+    // Disable both Save buttons (Step 1 quick-save and Step 3 final save) for
+    // the duration of the request so a double-click can't fire two POSTs.
+    const buttons = ['btn-save-step1', 'btn-save-dealer']
+      .map(id => document.getElementById(id))
+      .filter(Boolean);
+    const wasDisabled = buttons.map(b => b.disabled);
+    buttons.forEach(b => { b.disabled = true; });
+
     const info = this.getBasicInfo();
     const rawScores = this.getScores();
     const responses = this.getResponses();
@@ -383,6 +395,10 @@ window.FormController = {
       window.App.navigate(`/dealer/${savedDealerId}`);
     } catch (err) {
       window.App.toast(`❌ Lỗi: ${err.message}`, 'error');
+    } finally {
+      // Restore button enabled state (resetForm hides btn-save-step1 via
+      // its own logic, so we don't have to worry about that here).
+      buttons.forEach((b, i) => { b.disabled = wasDisabled[i]; });
     }
   },
 
@@ -474,50 +490,18 @@ window.FormController = {
     const counter = document.getElementById('form-photo-count');
     if (!gallery) return;
 
-    const totalCount = this.existingPhotos.length + this.pendingPhotos.length;
-    const remaining = this.MAX_PHOTOS_PER_DEALER - totalCount;
-    const dealerId = this.editingDealerId;
+    const grid = window.U.renderPhotoGrid({
+      dealerId: this.editingDealerId || '',
+      maxPhotos: this.MAX_PHOTOS_PER_DEALER,
+      existing: this.existingPhotos,
+      pending: this.pendingPhotos,
+      onDelete: 'FormController.deleteExistingPhoto({ID})',
+      onRemoveStaged: 'FormController.removeStagedPhoto({IDX})',
+      onAdd: 'FormController.handleFileInput(this)'
+    });
 
-    if (counter) counter.textContent = `${totalCount}/${this.MAX_PHOTOS_PER_DEALER}`;
-
-    const existingItems = this.existingPhotos.map(p => `
-      <div class="photo-item">
-        <img src="/uploads/${this.escAttr(dealerId)}/${this.escAttr(p.filename)}" alt="${this.escAttr(p.original_name)}" loading="lazy">
-        <button type="button" class="photo-delete" title="Xoá ảnh"
-                onclick="FormController.deleteExistingPhoto(${p.id})">×</button>
-      </div>
-    `).join('');
-
-    const pendingItems = this.pendingPhotos.map((p, idx) => `
-      <div class="photo-item photo-staged">
-        <img src="${p.previewUrl}" alt="">
-        <button type="button" class="photo-delete" title="Bỏ chọn"
-                onclick="FormController.removeStagedPhoto(${idx})">×</button>
-        <span class="photo-staged-tag">Mới</span>
-      </div>
-    `).join('');
-
-    const addBtn = remaining > 0 ? `
-      <label class="photo-add-btn" title="Thêm ảnh (còn ${remaining})">
-        <input type="file" accept="image/jpeg,image/png,image/webp" multiple
-               onchange="FormController.handleFileInput(this)">
-        <span class="photo-add-icon">+</span>
-        <span class="photo-add-label">Thêm ảnh</span>
-      </label>
-    ` : '';
-
-    gallery.innerHTML = `
-      <div class="photo-gallery">
-        ${existingItems}${pendingItems}${addBtn}
-      </div>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin:0.5rem 0 0">
-        JPG / PNG / WEBP, tối đa 5MB/ảnh, ${this.MAX_PHOTOS_PER_DEALER} ảnh/đại lý.
-      </p>
-    `;
-  },
-
-  escAttr(s) {
-    return String(s ?? '').replace(/"/g, '&quot;');
+    if (counter) counter.textContent = `${grid.count}/${grid.max}`;
+    gallery.innerHTML = grid.html;
   },
 
   handleFileInput(input) {

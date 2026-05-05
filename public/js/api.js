@@ -6,37 +6,32 @@
  */
 window.API = {
   async get(url) {
-    const res = await fetch(url);
-    return res.json();
+    return _request(url);
   },
 
   async post(url, data) {
-    const res = await fetch(url, {
+    return _request(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data || {})
     });
-    return res.json();
   },
 
   async put(url, data) {
-    const res = await fetch(url, {
+    return _request(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data || {})
     });
-    return res.json();
   },
 
   async del(url) {
-    const res = await fetch(url, { method: 'DELETE' });
-    return res.json();
+    return _request(url, { method: 'DELETE' });
   },
 
   // multipart/form-data upload (don't set Content-Type — the browser fills the boundary)
   async upload(url, formData) {
-    const res = await fetch(url, { method: 'POST', body: formData });
-    return res.json();
+    return _request(url, { method: 'POST', body: formData });
   },
 
   // POST JSON, expect a binary stream back; triggers a browser download.
@@ -47,10 +42,7 @@ window.API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body || {})
     });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
-    }
+    if (!res.ok) throw await _toError(res);
     const blob = await res.blob();
     const objUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -60,3 +52,35 @@ window.API = {
     URL.revokeObjectURL(objUrl);
   }
 };
+
+// Shared request runner: throws on non-2xx so callers don't have to remember
+// to check res.ok or handle non-JSON error bodies (eg. nginx 502 HTML).
+async function _request(url, opts) {
+  const res = await fetch(url, opts);
+  if (!res.ok) throw await _toError(res);
+  // Some endpoints (DELETE) may return empty body — be lenient.
+  const text = await res.text();
+  if (!text) return { success: true };
+  try { return JSON.parse(text); }
+  catch (_) { return { success: true, raw: text }; }
+}
+
+// Normalise different error shapes into Error(message). Preference order:
+//   - JSON body { error: "..." }
+//   - Plain-text body (truncated)
+//   - HTTP status fallback
+async function _toError(res) {
+  let detail = `HTTP ${res.status}`;
+  try {
+    const text = await res.text();
+    if (text) {
+      try {
+        const j = JSON.parse(text);
+        if (j && j.error) detail = j.error;
+      } catch (_) {
+        detail = text.slice(0, 200);
+      }
+    }
+  } catch (_) {}
+  return new Error(detail);
+}

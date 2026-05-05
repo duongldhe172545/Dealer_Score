@@ -1,55 +1,55 @@
 /**
- * Scoring Engine — calculates C_score, Tier, Batch
+ * Scoring Engine — calculates C_score, Tier, Batch.
+ *
+ * Thresholds come from window.CONFIG (loaded once at boot from /api/config),
+ * so they always match the backend. Hardcoded fallbacks below are only used
+ * if config failed to load.
  */
 window.ScoringEngine = {
-  /**
-   * Calculate C_score from individual scores
-   * @param {Object} scores - { C1: 0|1|2, C2: 0|1|2, ... C9: 0|1|2 }
-   * @returns {number} C_score (0-100 scale)
-   */
+  // Resolve thresholds at call-time so the values reflect whatever is in
+  // window.CONFIG at the moment (may load asynchronously).
+  _tierThresholds() {
+    return (window.CONFIG && window.CONFIG.TIER_THRESHOLDS) || { A: 75, B: 50, C: 30 };
+  },
+  _batch1Min() {
+    return (window.CONFIG && window.CONFIG.BATCH_THRESHOLDS && window.CONFIG.BATCH_THRESHOLDS.BATCH1_MIN_SCORE) || 60;
+  },
+
+  // Calculate C_score from individual scores: { C1: 0|1|2, ..., C9: 0|1|2 }.
+  // Returns a number in the 0-100 range with 0.1 precision.
   calculateCScore(scores) {
     let raw = 0;
     for (const c of window.CRITERIA) {
       const score = scores[c.code] || 0;
       raw += score * c.weight;
     }
-    // raw is 0-2 range, multiply by 50 to get 0-100
     return Math.round(raw * 50 * 10) / 10;
   },
 
-  /**
-   * Determine Tier from C_score
-   */
   getTier(cScore) {
-    if (cScore >= 75) return 'TIER A (NODE)';
-    if (cScore >= 50) return 'TIER B (HUB)';
-    if (cScore >= 30) return 'TIER C (LINK)';
+    const t = this._tierThresholds();
+    if (cScore >= t.A) return 'TIER A (NODE)';
+    if (cScore >= t.B) return 'TIER B (HUB)';
+    if (cScore >= t.C) return 'TIER C (LINK)';
     return 'TIER D (SEED)';
   },
 
-  /**
-   * Determine Batch from C_score and Tier
-   */
   getBatch(cScore, tier) {
-    if (cScore >= 60 && (tier === 'TIER A (NODE)' || tier === 'TIER B (HUB)')) return 'BATCH1';
-    if ((cScore >= 30 && cScore <= 59) || tier === 'TIER C (LINK)') return 'BATCH2';
-    if (cScore < 30 || tier === 'TIER D (SEED)') return 'BATCH3';
-    return 'BATCH2';
+    const t = this._tierThresholds();
+    const min1 = this._batch1Min();
+    if (cScore >= min1 && (tier === 'TIER A (NODE)' || tier === 'TIER B (HUB)')) return 'BATCH1';
+    if ((cScore >= t.C && cScore < min1) || tier === 'TIER C (LINK)') return 'BATCH2';
+    return 'BATCH3';
   },
 
-  /**
-   * Get tier CSS class
-   */
   getTierClass(tier) {
+    if (!tier) return 'tier-d';
     if (tier.includes('A')) return 'tier-a';
     if (tier.includes('B')) return 'tier-b';
     if (tier.includes('C')) return 'tier-c';
     return 'tier-d';
   },
 
-  /**
-   * Full calculation from scores object
-   */
   calculate(scores) {
     const cScore = this.calculateCScore(scores);
     const tier = this.getTier(cScore);

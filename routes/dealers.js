@@ -2,15 +2,60 @@ const express = require('express');
 const router = express.Router();
 const db = require('../lib/database');
 const { dealerIdParam } = require('../lib/security');
+const { CONFIG } = require('../lib/config');
 
-// Length limits guard against abusive payloads while still leaving plenty of headroom.
-const MAX = { ten_dl: 200, ten_chu: 200, sdt: 20, dia_chi: 500, area_code: 50,
-              dealer_type: 100, category_stack: 100, note: 2000 };
-
+// Validates payload from POST /api/dealers and PUT /api/dealers/:id.
+// Throws on the first violation so the route handler can surface a 400.
 function sanitizeDealerInput(body) {
-  for (const [field, max] of Object.entries(MAX)) {
+  if (!body || typeof body !== 'object') {
+    throw new Error('Body không hợp lệ');
+  }
+
+  // ---- Length caps for free-text fields ----
+  for (const [field, max] of Object.entries(CONFIG.FIELD_MAX_LEN)) {
     if (typeof body[field] === 'string' && body[field].length > max) {
       throw new Error(`Trường ${field} quá dài (tối đa ${max} ký tự)`);
+    }
+  }
+
+  // ---- Phone format ----
+  if (body.sdt && !/^[0-9]{10,11}$/.test(body.sdt)) {
+    throw new Error('Số điện thoại không hợp lệ (10-11 chữ số)');
+  }
+
+  // ---- c_score in [0, 100] ----
+  if (body.c_score != null) {
+    const n = Number(body.c_score);
+    if (!Number.isFinite(n) || n < CONFIG.C_SCORE_MIN || n > CONFIG.C_SCORE_MAX) {
+      throw new Error(`c_score phải nằm trong ${CONFIG.C_SCORE_MIN}-${CONFIG.C_SCORE_MAX}`);
+    }
+  }
+
+  // ---- Tier / batch / status enums ----
+  if (body.dealer_tier && !CONFIG.TIERS.includes(body.dealer_tier)) {
+    throw new Error(`dealer_tier không hợp lệ (chỉ chấp nhận: ${CONFIG.TIERS.join(', ')})`);
+  }
+  if (body.pilot_batch && !CONFIG.BATCHES.includes(body.pilot_batch)) {
+    throw new Error(`pilot_batch không hợp lệ (chỉ chấp nhận: ${CONFIG.BATCHES.join(', ')})`);
+  }
+  if (body.dealer_status && !CONFIG.DEALER_STATUSES.includes(body.dealer_status)) {
+    throw new Error(`dealer_status không hợp lệ (chỉ chấp nhận: ${CONFIG.DEALER_STATUSES.join(', ')})`);
+  }
+
+  // ---- Numeric / boolean coercion checks ----
+  if (body.est_team_size != null) {
+    const n = Number(body.est_team_size);
+    if (!Number.isInteger(n) || n < 0) {
+      throw new Error('est_team_size phải là số nguyên không âm');
+    }
+  }
+
+  // ---- Per-criterion scores must be 0/1/2 ----
+  if (Array.isArray(body.scores)) {
+    for (const s of body.scores) {
+      if (s && s.score != null && !CONFIG.CRITERION_SCORES.includes(Number(s.score))) {
+        throw new Error(`Điểm tiêu chí ${s.criterion_code} phải là 0, 1 hoặc 2`);
+      }
     }
   }
 }
