@@ -116,7 +116,48 @@ router.post('/excel', async (req, res) => {
 });
 
 // =====================================================================
-// POST /api/exports/dealers/:id/pdf — single-dealer PDF
+// POST /api/exports/pdf
+// Body: { ids?: string[] } — multi-dealer tabular PDF (matches dashboard
+// columns; no per-criterion scores or photos). Empty ids = export all.
+// =====================================================================
+router.post('/pdf', async (req, res) => {
+  try {
+    const { ids } = req.body || {};
+    let dealers = db.getAllDealers();
+    if (Array.isArray(ids) && ids.length > 0) {
+      const idSet = new Set(ids);
+      dealers = dealers.filter(d => idSet.has(d.dealer_id));
+    }
+
+    const doc = new PDFDocument({
+      size: 'A4',
+      layout: 'landscape',
+      margins: { top: 36, bottom: 36, left: 28, right: 28 },
+      info: { Title: 'Danh sách đại lý', Author: 'ADG Dealer Scoring Tool' }
+    });
+    doc.registerFont('Reg', FONT_REG);
+    doc.registerFont('Bold', FONT_BOLD);
+    doc.font('Reg');
+
+    const filename = `DealerScoring_${formatTimestamp(new Date())}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    doc.pipe(res);
+
+    pdfListTitle(doc, dealers.length);
+    pdfDealerListTable(doc, dealers);
+
+    doc.end();
+  } catch (err) {
+    console.error('PDF list export error:', err);
+    if (!res.headersSent) res.status(500).json({ success: false, error: err.message });
+    else res.end();
+  }
+});
+
+// =====================================================================
+// POST /api/exports/dealers/:id/pdf — single-dealer PDF (full detail
+// with C1–C9 breakdown, responses, and photos). Used by the detail page.
 // =====================================================================
 router.param('id', dealerIdParam);
 
@@ -347,6 +388,119 @@ function pdfSectionTitle(doc, text) {
      .lineTo(doc.page.width - doc.page.margins.right, y + 2)
      .lineWidth(1).strokeColor('#6366f1').stroke();
   doc.moveDown(0.4);
+}
+
+// ----- list (tabular, multi-dealer) PDF helpers -----
+
+const LIST_FONT_SIZE = 7.5;
+const LIST_PAD_X = 4;
+const LIST_PAD_Y = 5;
+const LIST_LINE_GAP = 1;
+
+// Column widths sum to 786pt — matches the usable A4-landscape page width
+// after 28pt left+right margins (842 - 56). "Đội lắp đặt" and "Số thợ" are
+// merged into a single column ("Có (N thợ)" / "Không") to leave more room
+// for free-text columns; row and header heights grow dynamically so nothing
+// gets clipped.
+const LIST_COLS = [
+  { label: 'STT',         width: 22, get: (d, i) => String(i + 1) },
+  { label: 'Mã ĐL',       width: 48, get: d => d.dealer_id },
+  { label: 'Tên ĐL',      width: 70, get: d => d.ten_dl },
+  { label: 'Chủ ĐL',      width: 50, get: d => d.ten_chu },
+  { label: 'SĐT',         width: 55, get: d => d.sdt },
+  { label: 'Địa chỉ',     width: 83, get: d => d.dia_chi },
+  { label: 'Mã địa danh', width: 50, get: d => d.area_code },
+  { label: 'Tier',        width: 55, get: d => d.dealer_tier },
+  { label: 'Loại ĐL',     width: 50, get: d => d.dealer_type },
+  { label: 'Trạng thái',  width: 45, get: d => d.dealer_status },
+  { label: 'Ngành hàng',  width: 50, get: d => d.category_stack },
+  { label: 'Đội lắp đặt', width: 50, get: d => d.has_install_team ? `Có (${d.est_team_size || 0} thợ)` : 'Không' },
+  { label: 'C_Score',     width: 42, get: d => String(d.c_score ?? '-') },
+  { label: 'Batch',       width: 42, get: d => d.pilot_batch },
+  { label: 'Data %',      width: 36, get: d => d.data_completeness != null ? `${d.data_completeness}%` : '-' },
+  { label: 'Ghi chú',     width: 38, get: d => d.note }
+];
+
+function pdfListTitle(doc, count) {
+  doc.font('Bold').fontSize(16).fillColor('#1a202c').text('DANH SÁCH ĐẠI LÝ', { align: 'center' });
+  const stamp = new Date().toLocaleString('vi-VN');
+  doc.font('Reg').fontSize(9).fillColor('#718096')
+     .text(`${count} đại lý — Xuất ngày ${stamp}`, { align: 'center' });
+  doc.moveDown(0.6);
+}
+
+// Returns the height needed to render the longest cell in this row at full
+// width. Used for both data rows and the header row (just call with a getter
+// that returns the column label).
+function measureRowHeight(doc, cols, getter, font) {
+  doc.font(font).fontSize(LIST_FONT_SIZE);
+  let max = LIST_FONT_SIZE; // single-line baseline
+  for (const col of cols) {
+    const text = String(getter(col) || '-');
+    const h = doc.heightOfString(text, {
+      width: col.width - LIST_PAD_X * 2,
+      lineGap: LIST_LINE_GAP
+    });
+    if (h > max) max = h;
+  }
+  return Math.ceil(max + LIST_PAD_Y * 2);
+}
+
+function drawCell(doc, x, y, w, h, text, font, color) {
+  doc.font(font).fontSize(LIST_FONT_SIZE).fillColor(color);
+  doc.text(String(text || '-'), x + LIST_PAD_X, y + LIST_PAD_Y, {
+    width: w - LIST_PAD_X * 2,
+    height: h - LIST_PAD_Y * 2,
+    lineGap: LIST_LINE_GAP
+  });
+}
+
+function drawListHeader(doc, x, y, totalW, headerH) {
+  doc.save().rect(x, y, totalW, headerH).fill('#2d3748').restore();
+  let cx = x;
+  for (const col of LIST_COLS) {
+    drawCell(doc, cx, y, col.width, headerH, col.label, 'Bold', '#ffffff');
+    cx += col.width;
+  }
+}
+
+function drawListRow(doc, x, y, cols, dealer, idx, rowH) {
+  if (idx % 2 === 1) {
+    const totalW = cols.reduce((s, c) => s + c.width, 0);
+    doc.save().rect(x, y, totalW, rowH).fill('#f7fafc').restore();
+  }
+  let cx = x;
+  for (const col of cols) {
+    drawCell(doc, cx, y, col.width, rowH, col.get(dealer, idx), 'Reg', '#1a202c');
+    cx += col.width;
+  }
+}
+
+function pdfDealerListTable(doc, dealers) {
+  const x = doc.page.margins.left;
+  const totalW = LIST_COLS.reduce((s, c) => s + c.width, 0);
+  const maxY = doc.page.height - doc.page.margins.bottom;
+
+  const headerH = measureRowHeight(doc, LIST_COLS, (col) => col.label, 'Bold');
+
+  drawListHeader(doc, x, doc.y, totalW, headerH);
+  let y = doc.y + headerH;
+
+  for (let i = 0; i < dealers.length; i++) {
+    const dealer = dealers[i];
+    const rowH = measureRowHeight(doc, LIST_COLS, (col) => col.get(dealer, i), 'Reg');
+
+    if (y + rowH > maxY) {
+      doc.addPage();
+      y = doc.page.margins.top;
+      drawListHeader(doc, x, y, totalW, headerH);
+      y += headerH;
+    }
+    drawListRow(doc, x, y, LIST_COLS, dealer, i, rowH);
+    y += rowH;
+  }
+
+  doc.y = y;
 }
 
 module.exports = router;

@@ -34,17 +34,27 @@ window.DashboardController = {
       this.renderTable();
     });
 
-    document.getElementById('btn-export-excel').addEventListener('click', () => {
-      const ids = this.getExportIds();
-      const label = this.selectedIds.size > 0
-        ? `${ids.length} đại lý đã chọn`
-        : (ids.length < this.dealers.length ? `${ids.length} đại lý đang lọc` : 'tất cả đại lý');
-      window.App.toast(`📥 Đang tạo Excel cho ${label}...`, 'info');
-      const filename = `DealerScoring_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      window.API.download('/api/exports/excel', { ids }, filename)
-        .then(() => window.App.toast('✅ Đã tải xuống file Excel', 'success'))
-        .catch(err => window.App.toast(`❌ ${err.message}`, 'error'));
-    });
+    document.getElementById('btn-export-excel').addEventListener('click', () => this.exportList('excel'));
+    document.getElementById('btn-export-pdf').addEventListener('click', () => this.exportList('pdf'));
+  },
+
+  // Drives the two header export buttons. Both share the same
+  // selection-vs-filter logic; only the URL, MIME, and filename differ.
+  exportList(format) {
+    const ids = this.getExportIds();
+    const label = this.selectedIds.size > 0
+      ? `${ids.length} đại lý đã chọn`
+      : (ids.length < this.dealers.length ? `${ids.length} đại lý đang lọc` : 'tất cả đại lý');
+
+    const today = new Date().toISOString().slice(0, 10);
+    const cfg = format === 'pdf'
+      ? { url: '/api/exports/pdf',   filename: `DealerScoring_${today}.pdf`,  emoji: '📄', kind: 'PDF' }
+      : { url: '/api/exports/excel', filename: `DealerScoring_${today}.xlsx`, emoji: '📥', kind: 'Excel' };
+
+    window.App.toast(`${cfg.emoji} Đang tạo ${cfg.kind} cho ${label}...`, 'info');
+    window.API.download(cfg.url, { ids }, cfg.filename)
+      .then(() => window.App.toast(`✅ Đã tải xuống ${cfg.kind}`, 'success'))
+      .catch(err => window.App.toast(`❌ ${err.message}`, 'error'));
   },
 
   // Returns the dealer_ids that should go to an export. Priority:
@@ -176,7 +186,6 @@ window.DashboardController = {
           <div class="actions-cell">
             <button class="action-btn" onclick="App.navigate('/dealer/${id}')" title="Xem chi tiết">👁</button>
             <button class="action-btn" onclick="App.navigate('/dealer/${id}/edit')" title="Sửa">✏️</button>
-            <button class="action-btn" onclick="DashboardController.exportPdf('${id}')" title="Xuất PDF">📄</button>
             <button class="action-btn delete" onclick="DashboardController.deleteDealer('${id}')" title="Xóa">🗑</button>
           </div>
         </td>
